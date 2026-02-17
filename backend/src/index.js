@@ -11,6 +11,8 @@ import eligibilityRoutes from './routes/eligibility.js';
 import alertsRoutes from './routes/alerts.js';
 import analyticsRoutes from './routes/analytics.js';
 import walletRoutes from './routes/wallets.js';
+import botRoutes from './routes/bot.js';
+import socialRoutes from './routes/social.js';
 
 // Services
 import { initDatabase } from './config/database.js';
@@ -63,6 +65,8 @@ fastify.register(eligibilityRoutes, { prefix: '/api/eligibility' });
 fastify.register(alertsRoutes, { prefix: '/api/alerts' });
 fastify.register(analyticsRoutes, { prefix: '/api/analytics' });
 fastify.register(walletRoutes, { prefix: '/api/wallets' });
+fastify.register(botRoutes, { prefix: '/api/bot' });
+fastify.register(socialRoutes, { prefix: '/api/social' });
 
 // Error handler
 fastify.setErrorHandler((error, request, reply) => {

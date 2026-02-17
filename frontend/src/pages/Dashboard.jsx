@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react'
 import { TrendingUp, Zap, Wallet, Bell } from 'lucide-react'
 import api from '../services/api'
+import { AiBotChat } from '../components/AiBotChat'
+import { SocialFeed } from '../components/SocialFeed'
 
 export default function Dashboard() {
+  const [wallet, setWallet] = useState(null)
+  
+  // Mock wallet - em produção, usar wallet real conectada
+  useEffect(() => {
+    setWallet({ 
+      address: '0x1234567890123456789012345678901234567890'
+    })
+  }, [])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   
@@ -157,6 +167,19 @@ export default function Dashboard() {
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Monitor a new wallet address
           </p>
+        </div>
+      </div>
+
+      {/* AI Bot e Social Feed */}
+      <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* AI Bot Chat */}
+        <div style={{ height: '500px' }}>
+          {wallet && <AiBotChat wallet={wallet} />}
+        </div>
+        
+        {/* Social Feed */}
+        <div style={{ height: '500px' }}>
+          <SocialFeed />
         </div>
       </div>
     </div>
