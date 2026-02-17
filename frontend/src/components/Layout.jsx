@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Zap, Wallet, Bell, Settings } from 'lucide-react'
+import { Home, Zap, Wallet, Bell, Settings, TrendingUp } from 'lucide-react'
 
 export default function Layout({ children }) {
   const location = useLocation()
@@ -7,6 +7,7 @@ export default function Layout({ children }) {
   const navigation = [
     { name: 'Dashboard', path: '/', icon: Home },
     { name: 'Airdrops', path: '/airdrops', icon: Zap },
+    { name: 'Portfólio', path: '/portfolio', icon: TrendingUp },
     { name: 'Wallets', path: '/wallets', icon: Wallet },
     { name: 'Alerts', path: '/alerts', icon: Bell },
     { name: 'Settings', path: '/settings', icon: Settings },
