@@ -13,6 +13,9 @@ import analyticsRoutes from './routes/analytics.js';
 import walletRoutes from './routes/wallets.js';
 import botRoutes from './routes/bot.js';
 import socialRoutes from './routes/social.js';
+import authRoutes from './routes/auth.js';
+import monitoringRoutes from './routes/monitoring.js';
+import transactionRoutes from './routes/transactions.js';
 
 // Services
 import { initDatabase } from './config/database.js';
@@ -40,8 +43,8 @@ const fastify = Fastify({
 
 // Register plugins
 await fastify.register(cors, {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.FRONTEND_URL
     : true
 });
 
@@ -52,7 +55,7 @@ await fastify.register(rateLimit, {
 
 // Health check
 fastify.get('/health', async (request, reply) => {
-  return { 
+  return {
     status: 'ok',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
@@ -67,11 +70,24 @@ fastify.register(analyticsRoutes, { prefix: '/api/analytics' });
 fastify.register(walletRoutes, { prefix: '/api/wallets' });
 fastify.register(botRoutes, { prefix: '/api/bot' });
 fastify.register(socialRoutes, { prefix: '/api/social' });
+fastify.register(authRoutes, { prefix: '/api/auth' });
+fastify.register(monitoringRoutes, { prefix: '/api/monitoring' });
+fastify.register(transactionRoutes, { prefix: '/api/transactions' });
+
+// Root info route
+fastify.get('/', async () => ({
+  name: 'Airdrop Tracker API',
+  version: '1.0.0',
+  status: 'running',
+  frontend: 'http://localhost:5173',
+  docs: '/api/health',
+  routes: ['/api/airdrops', '/api/wallets', '/api/alerts', '/api/analytics', '/api/eligibility', '/api/monitoring', '/api/social', '/api/bot', '/api/auth', '/api/transactions'],
+}));
 
 // Error handler
 fastify.setErrorHandler((error, request, reply) => {
   fastify.log.error(error);
-  
+
   reply.status(error.statusCode || 500).send({
     error: error.message || 'Internal Server Error',
     statusCode: error.statusCode || 500
@@ -84,20 +100,19 @@ const start = async () => {
     // Initialize database
     logger.info('Connecting to database...');
     await initDatabase();
-    
+
     // Initialize Redis cache
     logger.info('Connecting to Redis...');
     await initRedis();
-    
+
     // Start server
     const port = parseInt(process.env.PORT) || 3000;
     await fastify.listen({ port, host: '0.0.0.0' });
-    
     logger.info(`🚀 Server running on port ${port}`);
     logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
     logger.info(`🤖 AI Provider: ${process.env.USE_OLLAMA === 'true' ? 'Ollama (local)' : 'OpenRouter'}`);
     logger.info(`💾 Cache: ${process.env.REDIS_URL ? 'Redis enabled' : 'No cache'}`);
-    
+
   } catch (err) {
     logger.error('Error starting server:', err);
     process.exit(1);

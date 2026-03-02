@@ -6,43 +6,38 @@ let pool;
 
 export const initDatabase = async () => {
   if (pool) return pool;
-  
+  if (!process.env.DATABASE_URL) {
+    logger.warn('⚠️ DATABASE_URL not set - running without database (preview mode)');
+    return null;
+  }
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: parseInt(process.env.DB_POOL_SIZE) || 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
   });
-  
-  // Test connection
   try {
     const client = await pool.connect();
     logger.info('✅ Database connected successfully');
     client.release();
-    
-    // Create tables if not exist
     await createTables();
-    
     return pool;
   } catch (err) {
-    logger.error('❌ Database connection failed:', err);
-    throw err;
+    logger.error('❌ Database connection failed:', err.message);
+    logger.warn('⚠️ Running without database (preview mode)');
+    pool = null;
+    return null;
   }
 };
 
-export const getPool = () => {
-  if (!pool) {
-    throw new Error('Database not initialized. Call initDatabase() first.');
-  }
-  return pool;
-};
+export const getPool = () => pool || null;
 
 const createTables = async () => {
   const client = await pool.connect();
-  
+
   try {
     await client.query('BEGIN');
-    
+
     // Airdrops table
     await client.query(`
       CREATE TABLE IF NOT EXISTS airdrops (
@@ -61,7 +56,7 @@ const createTables = async () => {
         updated_at TIMESTAMP DEFAULT NOW()
       );
     `);
-    
+
     // Wallets table
     await client.query(`
       CREATE TABLE IF NOT EXISTS wallets (
@@ -71,7 +66,7 @@ const createTables = async () => {
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
-    
+
     // Eligibility checks table
     await client.query(`
       CREATE TABLE IF NOT EXISTS eligibility_checks (
@@ -85,7 +80,7 @@ const createTables = async () => {
         checked_at TIMESTAMP DEFAULT NOW()
       );
     `);
-    
+
     // Alerts table
     await client.query(`
       CREATE TABLE IF NOT EXISTS alerts (
@@ -101,7 +96,7 @@ const createTables = async () => {
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
-    
+
     // Social posts cache
     await client.query(`
       CREATE TABLE IF NOT EXISTS social_posts (
@@ -117,7 +112,7 @@ const createTables = async () => {
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
-    
+
     // Transactions history
     await client.query(`
       CREATE TABLE IF NOT EXISTS wallet_transactions (
@@ -135,7 +130,27 @@ const createTables = async () => {
         UNIQUE(tx_hash, wallet_address)
       );
     `);
-    
+
+    // Financial transactions table (investments, claims, swaps, gas)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id SERIAL PRIMARY KEY,
+        type VARCHAR(20) NOT NULL,
+        airdrop_id VARCHAR(100) REFERENCES airdrops(id) ON DELETE SET NULL,
+        wallet_address VARCHAR(42),
+        token VARCHAR(50) NOT NULL,
+        amount DECIMAL(30, 18),
+        value_usd DECIMAL(20, 2),
+        chain VARCHAR(50),
+        tx_hash VARCHAR(66),
+        from_token VARCHAR(50),
+        from_amount DECIMAL(30, 18),
+        notes TEXT,
+        tx_date TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
     // Create indexes
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_airdrops_status ON airdrops(status);
@@ -147,11 +162,15 @@ const createTables = async () => {
       CREATE INDEX IF NOT EXISTS idx_social_analyzed ON social_posts(analyzed);
       CREATE INDEX IF NOT EXISTS idx_transactions_wallet ON wallet_transactions(wallet_address);
       CREATE INDEX IF NOT EXISTS idx_transactions_chain ON wallet_transactions(chain);
+      CREATE INDEX IF NOT EXISTS idx_fin_tx_type ON transactions(type);
+      CREATE INDEX IF NOT EXISTS idx_fin_tx_airdrop ON transactions(airdrop_id);
+      CREATE INDEX IF NOT EXISTS idx_fin_tx_wallet ON transactions(wallet_address);
+      CREATE INDEX IF NOT EXISTS idx_fin_tx_date ON transactions(tx_date);
     `);
-    
+
     await client.query('COMMIT');
     logger.info('✅ Database tables created/verified');
-    
+
   } catch (err) {
     await client.query('ROLLBACK');
     logger.error('❌ Error creating tables:', err);
@@ -165,7 +184,7 @@ export const query = async (text, params) => {
   const start = Date.now();
   const res = await pool.query(text, params);
   const duration = Date.now() - start;
-  
+
   logger.debug('Executed query', { text, duration, rows: res.rowCount });
   return res;
 };
