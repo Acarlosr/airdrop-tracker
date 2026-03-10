@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Twitter, MessageCircle, Search, RefreshCw, Zap } from 'lucide-react';
 
 const SAMPLE_POSTS = [
@@ -41,28 +41,28 @@ const SAMPLE_POSTS = [
 ];
 
 export function SocialFeed() {
-  const [posts, setPosts] = useState(SAMPLE_POSTS);
+  const [posts] = useState(SAMPLE_POSTS);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
 
   const handleRefresh = async () => {
     setLoading(true);
-    
+
     try {
       // Simular fetch (trocar por API real depois)
       await new Promise(r => setTimeout(r, 1000));
-      
+
       // Aqui você chamaria:
       // const response = await fetch('/api/social/feed');
       // const data = await response.json();
       // setPosts(data.posts);
-      
+
       console.log('Feed atualizado');
     } catch (error) {
       console.error('Error:', error);
     }
-    
+
     setLoading(false);
   };
 
@@ -70,12 +70,12 @@ export function SocialFeed() {
     // Filtro por fonte
     if (filter === 'twitter' && post.source !== 'twitter') return false;
     if (filter === 'discord' && post.source !== 'discord') return false;
-    
+
     // Filtro por busca
     if (search && !post.content.toLowerCase().includes(search.toLowerCase())) {
       return false;
     }
-    
+
     return true;
   });
 
@@ -84,36 +84,33 @@ export function SocialFeed() {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-900 to-purple-900 p-6 rounded-lg">
         <h2 className="text-2xl font-bold text-white mb-4">📢 Feed Social</h2>
-        
+
         {/* Filtros */}
         <div className="flex gap-2 mb-4 flex-wrap">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded transition text-sm font-medium ${
-              filter === 'all'
+            className={`px-4 py-2 rounded transition text-sm font-medium ${filter === 'all'
                 ? 'bg-white text-blue-900'
                 : 'bg-blue-800 text-white hover:bg-blue-700'
-            }`}
+              }`}
           >
             Todos
           </button>
           <button
             onClick={() => setFilter('twitter')}
-            className={`px-4 py-2 rounded flex items-center gap-2 transition text-sm font-medium ${
-              filter === 'twitter'
+            className={`px-4 py-2 rounded flex items-center gap-2 transition text-sm font-medium ${filter === 'twitter'
                 ? 'bg-white text-blue-900'
                 : 'bg-blue-800 text-white hover:bg-blue-700'
-            }`}
+              }`}
           >
             <Twitter className="w-4 h-4" /> Twitter
           </button>
           <button
             onClick={() => setFilter('discord')}
-            className={`px-4 py-2 rounded flex items-center gap-2 transition text-sm font-medium ${
-              filter === 'discord'
+            className={`px-4 py-2 rounded flex items-center gap-2 transition text-sm font-medium ${filter === 'discord'
                 ? 'bg-white text-blue-900'
                 : 'bg-blue-800 text-white hover:bg-blue-700'
-            }`}
+              }`}
           >
             <MessageCircle className="w-4 h-4" /> Discord
           </button>
@@ -156,11 +153,10 @@ export function SocialFeed() {
               href={post.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`block p-4 rounded-lg border transition hover:shadow-lg ${
-                post.urgent
+              className={`block p-4 rounded-lg border transition hover:shadow-lg ${post.urgent
                   ? 'bg-red-900/30 border-red-500/50 hover:bg-red-900/50'
                   : 'bg-gray-800 border-gray-700 hover:bg-gray-700'
-              }`}
+                }`}
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">

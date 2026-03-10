@@ -3,46 +3,46 @@ import logger from '../utils/logger.js';
 
 let redisClient;
 
+const REDIS_CONNECT_TIMEOUT_MS = 3000;
+
 export const initRedis = async () => {
   if (!process.env.REDIS_URL) {
     logger.warn('⚠️  Redis URL not configured - caching disabled');
     return null;
   }
-  
   if (redisClient) return redisClient;
-  
+
   try {
     redisClient = createClient({
       url: process.env.REDIS_URL,
       socket: {
+        connectTimeout: REDIS_CONNECT_TIMEOUT_MS,
         reconnectStrategy: (retries) => {
-          if (retries > 10) {
+          if (retries > 5) {
             logger.error('❌ Redis max retries reached');
             return new Error('Redis max retries');
           }
-          return retries * 100;
+          return Math.min(retries * 200, 1000);
         }
       }
     });
-    
-    redisClient.on('error', (err) => {
-      logger.error('Redis error:', err);
-    });
-    
-    redisClient.on('connect', () => {
-      logger.info('🔄 Redis connecting...');
-    });
-    
-    redisClient.on('ready', () => {
-      logger.info('✅ Redis connected and ready');
-    });
-    
-    await redisClient.connect();
+    redisClient.on('error', () => {});
+    redisClient.on('ready', () => logger.info('✅ Redis connected and ready'));
+
+    const connectPromise = redisClient.connect().catch(() => {});
+    await Promise.race([
+      connectPromise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Redis connection timeout')), REDIS_CONNECT_TIMEOUT_MS)
+      )
+    ]);
     return redisClient;
-    
   } catch (err) {
-    logger.error('❌ Redis connection failed:', err);
-    logger.warn('⚠️  Continuing without cache');
+    logger.warn('⚠️  Redis unavailable - continuing without cache');
+    if (redisClient) {
+      redisClient.removeAllListeners();
+      redisClient = null;
+    }
     return null;
   }
 };

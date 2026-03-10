@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
-    ArrowLeftRight, Plus, X, Trash2, Edit3, Save,
+    ArrowLeftRight, Plus, X, Trash2, Edit3,
     TrendingUp, TrendingDown, Fuel, Coins, ArrowDownUp,
-    RefreshCw, Filter, DollarSign, Check
+    RefreshCw, Check
 } from 'lucide-react'
 import { GlowCard } from '../components/GlowCard'
 import api from '../services/api'
@@ -149,8 +149,8 @@ function TransactionModal({ onClose, onSave, editData, airdrops }) {
                                     type="button"
                                     onClick={() => setForm(p => ({ ...p, type: t.id }))}
                                     className={`inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border transition-all ${form.type === t.id
-                                            ? 'border-[rgba(59,91,255,0.45)] text-[#7a9aff]'
-                                            : 'border-[rgba(255,255,255,0.08)] text-white/50 hover:border-[rgba(255,255,255,0.18)] hover:text-white/80'
+                                        ? 'border-[rgba(59,91,255,0.45)] text-[#7a9aff]'
+                                        : 'border-[rgba(255,255,255,0.08)] text-white/50 hover:border-[rgba(255,255,255,0.18)] hover:text-white/80'
                                         }`}
                                     style={form.type === t.id ? { background: 'rgba(59,91,255,0.13)' } : { background: 'rgba(255,255,255,0.03)' }}
                                 >
@@ -397,8 +397,8 @@ export default function Transactions() {
                         key={t.key}
                         onClick={() => setTab(t.key)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.key
-                                ? 'bg-electric/10 text-electric border border-electric/20'
-                                : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'
+                            ? 'bg-electric/10 text-electric border border-electric/20'
+                            : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'
                             }`}
                     >
                         {t.emoji && <span className="mr-1">{t.emoji}</span>}

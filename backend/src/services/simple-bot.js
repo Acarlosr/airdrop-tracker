@@ -1,8 +1,10 @@
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+function getGroq() {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return null;
+  return new Groq({ apiKey: key });
+}
 
 // Armazenar históricos em memória (trocar por Redis depois)
 const conversations = new Map();
@@ -41,9 +43,17 @@ Seja conciso. Responda em português.`;
       { role: 'user', content: message }
     ];
 
-    // Chamar Groq
+    // Chamar Groq (opcional - servidor sobe mesmo sem API key)
+    const groq = getGroq();
+    if (!groq) {
+      return {
+        success: true,
+        reply: 'Bot em modo offline. Configure GROQ_API_KEY no .env para habilitar respostas com IA.',
+        actions: [],
+      };
+    }
     const completion = await groq.chat.completions.create({
-      model: 'mixtral-8x7b-32768',
+      model: process.env.GROQ_MODEL || 'mixtral-8x7b-32768',
       messages,
       temperature: 0.3,
       max_tokens: 512,

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { ethers } from 'ethers';
-import logger from '../utils/logger.js';
-import { cacheGet, cacheSet } from '../config/redis.js';
+import logger from '../../utils/logger.js';
+import { cacheGet, cacheSet } from '../../config/redis.js';
 
 // Moralis client (40k requests/month free)
 const moralisClient = axios.create({
@@ -255,7 +255,7 @@ class BlockchainService {
     const results = {
       eligible: true,
       score: 0,
-      criteriaM et: {},
+      criteriaMet: {},
       reasons: []
     };
     

@@ -16,6 +16,9 @@ import socialRoutes from './routes/social.js';
 import authRoutes from './routes/auth.js';
 import monitoringRoutes from './routes/monitoring.js';
 import transactionRoutes from './routes/transactions.js';
+import aiRobotRoutes from './routes/ai-robot.js';
+import { startScheduler } from './jobs/scheduler.js';
+import './jobs/worker.js'; // Start worker process
 
 // Services
 import { initDatabase } from './config/database.js';
@@ -73,6 +76,7 @@ fastify.register(socialRoutes, { prefix: '/api/social' });
 fastify.register(authRoutes, { prefix: '/api/auth' });
 fastify.register(monitoringRoutes, { prefix: '/api/monitoring' });
 fastify.register(transactionRoutes, { prefix: '/api/transactions' });
+fastify.register(aiRobotRoutes, { prefix: '/api/ai-robot' });
 
 // Root info route
 fastify.get('/', async () => ({
@@ -81,7 +85,7 @@ fastify.get('/', async () => ({
   status: 'running',
   frontend: 'http://localhost:5173',
   docs: '/api/health',
-  routes: ['/api/airdrops', '/api/wallets', '/api/alerts', '/api/analytics', '/api/eligibility', '/api/monitoring', '/api/social', '/api/bot', '/api/auth', '/api/transactions'],
+  routes: ['/api/airdrops', '/api/wallets', '/api/alerts', '/api/analytics', '/api/eligibility', '/api/monitoring', '/api/social', '/api/bot', '/api/auth', '/api/transactions', '/api/ai-robot'],
 }));
 
 // Error handler
@@ -112,6 +116,12 @@ const start = async () => {
     logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
     logger.info(`🤖 AI Provider: ${process.env.USE_OLLAMA === 'true' ? 'Ollama (local)' : 'OpenRouter'}`);
     logger.info(`💾 Cache: ${process.env.REDIS_URL ? 'Redis enabled' : 'No cache'}`);
+
+    // Start AI Robot scheduler
+    if (process.env.AI_ROBOT_ENABLED !== 'false') {
+      await startScheduler();
+      logger.info('🤖 AI Robot automated scheduler jobs loaded');
+    }
 
   } catch (err) {
     logger.error('Error starting server:', err);

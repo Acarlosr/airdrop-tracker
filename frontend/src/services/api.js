@@ -86,6 +86,14 @@ const api = {
   updateTransaction: (id, data) => instance.patch(`/transactions/${id}`, data),
   deleteTransaction: (id) => instance.delete(`/transactions/${id}`),
 
+  // AI Robot
+  getRobotStatus: () => instance.get('/ai-robot/status'),
+  getRobotInsights: (params = {}) => instance.get('/ai-robot/insights', { params }),
+  getRobotReminders: (params = {}) => instance.get('/ai-robot/reminders', { params }),
+  triggerRobotAnalysis: () => instance.post('/ai-robot/analyze'),
+  toggleRobot: () => instance.post('/ai-robot/toggle'),
+  sendRobotChat: (data) => instance.post('/ai-robot/chat', data),
+
   // Generic GET/POST (backward compatible)
   get: (...args) => instance.get(...args),
   post: (...args) => instance.post(...args),

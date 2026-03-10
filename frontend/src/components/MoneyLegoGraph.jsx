@@ -1,16 +1,13 @@
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import ReactFlow, {
-  Node,
-  Edge,
   Controls,
   Background,
   useNodesState,
   useEdgesState,
   MarkerType,
-  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { AlertTriangle, DollarSign, Zap } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 /**
  * Componente de visualização do grafo Money Lego
@@ -26,7 +23,7 @@ export function MoneyLegoGraph({ graph, onSelectNode = null }) {
 
     const nodes = graph.nodes.map((position, index) => {
       const isCritical = graph.riskAnalysis?.some(r => r.nodeId === position.id);
-      
+
       return {
         id: `pos-${position.id}`,
         data: {
@@ -61,8 +58,8 @@ export function MoneyLegoGraph({ graph, onSelectNode = null }) {
     return { initialNodes: nodes, initialEdges: edges };
   }, [graph]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
   const onNodeClick = useCallback((event, node) => {
     if (onSelectNode) {

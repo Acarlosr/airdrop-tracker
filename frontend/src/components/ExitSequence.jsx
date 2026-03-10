@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, Check, AlertCircle, Loader } from 'lucide-react';
 
 /**
@@ -6,11 +6,11 @@ import { ChevronDown, Check, AlertCircle, Loader } from 'lucide-react';
  * Mostra passo-a-passo como desmontar uma cadeia Money Lego
  */
 
-export function ExitSequence({ 
-  sequence = [], 
+export function ExitSequence({
+  sequence = [],
   totalValue = 0,
   estimatedTime = null,
-  onExecute = null 
+  onExecute = null
 }) {
   const [expanded, setExpanded] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -60,9 +60,8 @@ export function ExitSequence({
           </div>
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-gray-600 transition-transform ${
-            expanded ? 'rotate-180' : ''
-          }`}
+          className={`w-5 h-5 text-gray-600 transition-transform ${expanded ? 'rotate-180' : ''
+            }`}
         />
       </button>
 
@@ -105,25 +104,23 @@ export function ExitSequence({
               return (
                 <div
                   key={stepNumber}
-                  className={`border-l-4 p-3 rounded transition-colors ${
-                    isCompleted
+                  className={`border-l-4 p-3 rounded transition-colors ${isCompleted
                       ? 'bg-green-50 border-l-green-500'
                       : isHighRisk
-                      ? 'bg-red-50 border-l-red-500'
-                      : 'bg-gray-50 border-l-blue-500'
-                  }`}
+                        ? 'bg-red-50 border-l-red-500'
+                        : 'bg-gray-50 border-l-blue-500'
+                    }`}
                 >
                   {/* Header do Step */}
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                          isCompleted
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${isCompleted
                             ? 'bg-green-500'
                             : isHighRisk
-                            ? 'bg-red-500'
-                            : 'bg-blue-500'
-                        }`}
+                              ? 'bg-red-500'
+                              : 'bg-blue-500'
+                          }`}
                       >
                         {isCompleted ? <Check size={16} /> : stepNumber}
                       </div>
@@ -169,11 +166,10 @@ export function ExitSequence({
             <button
               onClick={handleExecuteAll}
               disabled={executing || completedSteps.size === sequence.length}
-              className={`flex-1 py-2 px-4 rounded font-semibold text-sm transition-colors ${
-                executing || completedSteps.size === sequence.length
+              className={`flex-1 py-2 px-4 rounded font-semibold text-sm transition-colors ${executing || completedSteps.size === sequence.length
                   ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                   : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700'
-              }`}
+                }`}
             >
               {executing ? (
                 <div className="flex items-center justify-center gap-2">

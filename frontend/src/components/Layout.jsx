@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Zap, Wallet, Bell, Settings, TrendingUp, LogOut, ArrowLeftRight } from 'lucide-react'
+import { Home, Zap, Wallet, Bell, Settings, TrendingUp, LogOut, ArrowLeftRight, Bot } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export default function Layout({ children }) {
@@ -13,6 +13,7 @@ export default function Layout({ children }) {
     { name: 'Transações', path: '/transactions', icon: ArrowLeftRight },
     { name: 'Wallets', path: '/wallets', icon: Wallet },
     { name: 'Alerts', path: '/alerts', icon: Bell },
+    { name: 'AI Robot', path: '/ai-robot', icon: Bot },
     { name: 'Settings', path: '/settings', icon: Settings },
   ]
 

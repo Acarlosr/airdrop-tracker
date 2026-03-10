@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
 import { Wallet, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import MoneyLegoGraph from '../components/MoneyLegoGraph';
 import ExitSequence from '../components/ExitSequence';
@@ -10,7 +10,10 @@ import api from '../services/api';
  * Visualiza posições, Money Lego, riscos e sequência de saída
  */
 
-export function Portfolio({ wallet }) {
+const defaultWallet = { address: '0x1234567890123456789012345678901234567890' };
+
+export function Portfolio({ wallet: walletProp }) {
+  const wallet = walletProp || defaultWallet;
   const [portfolio, setPortfolio] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -19,59 +22,49 @@ export function Portfolio({ wallet }) {
   const [exitSequence, setExitSequence] = useState(null);
 
   useEffect(() => {
-    if (wallet?.address) {
-      fetchPortfolioData();
-    }
+    if (!wallet?.address) return;
+    const fetchPortfolioData = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/portfolio/${wallet.address}`).catch(() => ({
+          data: {
+            success: false,
+            data: getMockPortfolioData()
+          }
+        }));
+        setPortfolio(response.data.data || getMockPortfolioData());
+      } catch (error) {
+        console.error('Error fetching portfolio:', error);
+        setPortfolio(getMockPortfolioData());
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPortfolioData();
   }, [wallet]);
 
   useEffect(() => {
-    if (selectedAirdrop) {
-      fetchMoneyLegoGraph(selectedAirdrop);
-    }
-  }, [selectedAirdrop]);
-
-  const fetchPortfolioData = async () => {
-    try {
-      setLoading(true);
-      // Mock data - em produção, chamar backend real
-      const response = await api.get(`/portfolio/${wallet.address}`).catch(() => ({
-        data: {
-          success: false,
-          data: getMockPortfolioData()
-        }
-      }));
-
-      setPortfolio(response.data.data || getMockPortfolioData());
-    } catch (error) {
-      console.error('Error fetching portfolio:', error);
-      setPortfolio(getMockPortfolioData());
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMoneyLegoGraph = async (airdropId) => {
-    try {
-      const response = await api.get(`/money-lego/graph`, {
-        params: { airdropId, wallet: wallet.address }
-      }).catch(() => ({
-        data: { graph: getMockMoneyLegoGraph() }
-      }));
-
-      setMoneyLegoGraph(response.data.graph || getMockMoneyLegoGraph());
-
-      // Calcular sequência de saída
-      const exitResp = await api.get(`/money-lego/exit-sequence`, {
-        params: { airdropId, wallet: wallet.address }
-      }).catch(() => ({
-        data: { sequence: getMockExitSequence() }
-      }));
-
-      setExitSequence(exitResp.data.sequence || getMockExitSequence());
-    } catch (error) {
-      console.error('Error fetching Money Lego graph:', error);
-    }
-  };
+    if (!selectedAirdrop) return;
+    const fetchMoneyLegoGraph = async (airdropId) => {
+      try {
+        const response = await api.get(`/money-lego/graph`, {
+          params: { airdropId, wallet: wallet.address }
+        }).catch(() => ({
+          data: { graph: getMockMoneyLegoGraph() }
+        }));
+        setMoneyLegoGraph(response.data.graph || getMockMoneyLegoGraph());
+        const exitResp = await api.get(`/money-lego/exit-sequence`, {
+          params: { airdropId, wallet: wallet.address }
+        }).catch(() => ({
+          data: { sequence: getMockExitSequence() }
+        }));
+        setExitSequence(exitResp.data.sequence || getMockExitSequence());
+      } catch (error) {
+        console.error('Error fetching Money Lego graph:', error);
+      }
+    };
+    fetchMoneyLegoGraph(selectedAirdrop);
+  }, [selectedAirdrop, wallet.address]);
 
   if (loading) {
     return (
@@ -183,11 +176,10 @@ export function Portfolio({ wallet }) {
                 <button
                   key={airdrop.id}
                   onClick={() => setSelectedAirdrop(airdrop.id)}
-                  className={`p-3 rounded-lg transition-colors ${
-                    selectedAirdrop === airdrop.id
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
+                  className={`p-3 rounded-lg transition-colors ${selectedAirdrop === airdrop.id
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
                 >
                   <p className="text-sm font-semibold">{airdrop.name}</p>
                   <p className="text-xs opacity-75">${airdrop.total_value?.toFixed(0)}</p>
@@ -270,8 +262,8 @@ export function Portfolio({ wallet }) {
                 {portfolio?.metrics?.leverageRatio < 1.2
                   ? '✓ Conservador'
                   : portfolio?.metrics?.leverageRatio < 1.5
-                  ? '⚠️ Balanceado'
-                  : '🔴 Alto Risco'}
+                    ? '⚠️ Balanceado'
+                    : '🔴 Alto Risco'}
               </p>
             </div>
 

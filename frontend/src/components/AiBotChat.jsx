@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Loader, MessageCircle } from 'lucide-react';
 import api from '../services/api';
 
@@ -9,40 +9,34 @@ export function AiBotChat({ wallet }) {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    // Carregar histórico
-    if (wallet?.address) {
-      fetchHistory();
-    }
-  }, [wallet]);
-
-  const fetchHistory = async () => {
-    try {
-      const response = await api.get(`/bot/history/${wallet.address}`);
-      
-      if (response.data.success && response.data.history) {
-        // Converter para formato de UI
-        const formattedMessages = [];
-        for (let i = 0; i < response.data.history.length; i += 2) {
-          if (response.data.history[i]?.role === 'user') {
-            formattedMessages.push({
-              role: 'user',
-              content: response.data.history[i].content
-            });
+    if (!wallet?.address) return;
+    const fetchHistory = async () => {
+      try {
+        const response = await api.get(`/bot/history/${wallet.address}`);
+        if (response.data.success && response.data.history) {
+          const formattedMessages = [];
+          for (let i = 0; i < response.data.history.length; i += 2) {
+            if (response.data.history[i]?.role === 'user') {
+              formattedMessages.push({
+                role: 'user',
+                content: response.data.history[i].content
+              });
+            }
+            if (response.data.history[i + 1]?.role === 'assistant') {
+              formattedMessages.push({
+                role: 'assistant',
+                content: response.data.history[i + 1].content
+              });
+            }
           }
-          if (response.data.history[i + 1]?.role === 'assistant') {
-            formattedMessages.push({
-              role: 'assistant',
-              content: response.data.history[i + 1].content
-            });
-          }
+          setMessages(formattedMessages);
         }
-        
-        setMessages(formattedMessages);
+      } catch (error) {
+        console.error('Error fetching history:', error);
       }
-    } catch (error) {
-      console.error('Error fetching history:', error);
-    }
-  };
+    };
+    fetchHistory();
+  }, [wallet]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -118,11 +112,10 @@ export function AiBotChat({ wallet }) {
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg text-sm ${
-                msg.role === 'user'
-                  ? 'bg-purple-600 text-white rounded-br-none'
-                  : 'bg-gray-800 text-gray-100 border border-purple-500/30 rounded-bl-none'
-              }`}
+              className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg text-sm ${msg.role === 'user'
+                ? 'bg-purple-600 text-white rounded-br-none'
+                : 'bg-gray-800 text-gray-100 border border-purple-500/30 rounded-bl-none'
+                }`}
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
               {msg.actions && msg.actions.length > 0 && (

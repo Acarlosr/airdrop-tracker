@@ -151,6 +151,33 @@ const createTables = async () => {
       );
     `);
 
+    // AI Robot Insights table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ai_insights (
+        id VARCHAR(100) PRIMARY KEY,
+        type VARCHAR(50),
+        priority VARCHAR(20),
+        title VARCHAR(255),
+        summary TEXT,
+        details JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    // AI Robot Reminders table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ai_reminders (
+        id VARCHAR(100) PRIMARY KEY,
+        type VARCHAR(50),
+        priority VARCHAR(20),
+        airdrop VARCHAR(100),
+        title VARCHAR(255),
+        message TEXT,
+        deadline TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
     // Create indexes
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_airdrops_status ON airdrops(status);
@@ -166,6 +193,10 @@ const createTables = async () => {
       CREATE INDEX IF NOT EXISTS idx_fin_tx_airdrop ON transactions(airdrop_id);
       CREATE INDEX IF NOT EXISTS idx_fin_tx_wallet ON transactions(wallet_address);
       CREATE INDEX IF NOT EXISTS idx_fin_tx_date ON transactions(tx_date);
+      CREATE INDEX IF NOT EXISTS idx_ai_insights_type ON ai_insights(type);
+      CREATE INDEX IF NOT EXISTS idx_ai_insights_created ON ai_insights(created_at);
+      CREATE INDEX IF NOT EXISTS idx_ai_reminders_type ON ai_reminders(type);
+      CREATE INDEX IF NOT EXISTS idx_ai_reminders_airdrop ON ai_reminders(airdrop);
     `);
 
     await client.query('COMMIT');

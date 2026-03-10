@@ -1,0 +1,11 @@
+---
+description: Idioma do projeto - Português do Brasil
+globs: 
+alwaysApply: true
+---
+
+# Idioma: Português do Brasil (pt-BR)
+
+- **Todo texto voltado ao usuário** (interface, mensagens, erros, botões, placeholders, documentação de usuário) deve estar em **português do Brasil**.
+- Comentários de código e nomes de variáveis podem permanecer em inglês; preferir pt-BR em comentários quando explicarem regra de negócio ou fluxo para o usuário.
+- Manter tom consistente: claro, direto e em pt-BR.

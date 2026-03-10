@@ -2,27 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.88);
+  background-color: #07070f;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* ── New premium blue-indigo palette ── */
+  --accent: #3b5bff;
+  --accent-bright: #4f6fff;
+  --accent-dim: #2a44e8;
+  --accent-glow: rgba(59, 91, 255, 0.30);
+  --accent-subtle: rgba(59, 91, 255, 0.08);
+
+  /* Surfaces */
+  --surface: #07070f;
+  --surface-card: #0e0e1a;
+  --surface-elevated: #14142a;
+  --surface-hover: #1a1a32;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-accent: rgba(59, 91, 255, 0.30);
+
+  /* Legacy alias so old code still works */
+  --electric: var(--accent);
+  --electric-glow: var(--accent-glow);
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background: var(--surface);
 }
 
 #root {
@@ -30,40 +48,165 @@ body {
   min-height: 100vh;
 }
 
+/* ── Components ──────────────────────────────────────────────────── */
 @layer components {
+
+  /* Card base */
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+    @apply rounded-2xl p-6 border;
+    background: var(--surface-card);
+    border-color: var(--border);
   }
-  
+
+  /* Card with blue glow */
+  .card-glow {
+    @apply rounded-2xl p-6 border relative overflow-hidden transition-all duration-300;
+    background: var(--surface-card);
+    border-color: var(--border);
+  }
+
+  .card-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(59, 91, 255, 0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .card-glow:hover {
+    border-color: var(--border-accent);
+    box-shadow: 0 0 0 1px rgba(59, 91, 255, 0.15), 0 8px 32px rgba(59, 91, 255, 0.12);
+  }
+
+  .card-glow-active {
+    @apply card-glow;
+    border-color: var(--border-accent) !important;
+    box-shadow: 0 0 0 1px rgba(59, 91, 255, 0.25), 0 8px 32px rgba(59, 91, 255, 0.18);
+  }
+
+  /* Buttons */
   .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer;
   }
-  
+
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700;
+    @apply text-white font-semibold;
+    background: var(--accent);
+    box-shadow: 0 4px 20px var(--accent-glow);
   }
-  
+
+  .btn-primary:hover {
+    background: var(--accent-bright);
+    box-shadow: 0 6px 28px rgba(59, 91, 255, 0.45);
+    transform: translateY(-1px);
+  }
+
   .btn-secondary {
-    @apply bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600;
+    @apply text-white/70 border transition-all;
+    background: var(--surface-elevated);
+    border-color: var(--border);
   }
-  
+
+  .btn-secondary:hover {
+    @apply text-white;
+    background: var(--surface-hover);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Badges */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  
+
+  .badge-electric {
+    background: rgba(59, 91, 255, 0.15);
+    color: #7a9aff;
+    border: 1px solid rgba(59, 91, 255, 0.30);
+  }
+
   .badge-success {
-    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+    @apply bg-emerald-500/15 text-emerald-400 border border-emerald-500/25;
   }
-  
+
   .badge-warning {
-    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+    @apply bg-amber-500/15 text-amber-400 border border-amber-500/25;
   }
-  
+
   .badge-danger {
-    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+    @apply bg-red-500/15 text-red-400 border border-red-500/25;
   }
-  
-  .badge-info {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+
+  .text-muted {
+    @apply text-white/40;
   }
+
+  .text-primary {
+    @apply text-white;
+  }
+}
+
+/* ── Glow text helpers ───────────────────────────────────────────── */
+.glow-text {
+  text-shadow: 0 0 24px var(--accent-glow);
+}
+
+.glow-number {
+  color: var(--accent-bright);
+  text-shadow: 0 0 28px var(--accent-glow);
+}
+
+/* ── Blue gradient blob (background atmosphere) ──────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  top: -20vh;
+  left: -10vw;
+  width: 60vw;
+  height: 60vh;
+  background: radial-gradient(ellipse at center, rgba(37, 56, 200, 0.18) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-elevated);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 91, 255, 0.5);
+}
+
+/* ── Form inputs ─────────────────────────────────────────────────── */
+.input-field {
+  @apply w-full rounded-xl px-4 py-2.5 text-white text-sm transition-all duration-200;
+  @apply placeholder:text-white/25 focus:outline-none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.input-field:focus {
+  border-color: rgba(59, 91, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(59, 91, 255, 0.10);
+}
+
+.input-field option {
+  background: #0e0e1a;
+}
+
+/* ── Sidebar nav link active ─────────────────────────────────────── */
+.nav-active {
+  background: var(--accent-subtle);
+  color: var(--accent-bright) !important;
+  border-left: 2px solid var(--accent);
 }

@@ -10,6 +10,7 @@ import Wallets from './pages/Wallets'
 import Alerts from './pages/Alerts'
 import Settings from './pages/Settings'
 import Transactions from './pages/Transactions'
+import AiRobot from './pages/AiRobot'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -33,6 +34,7 @@ function App() {
         <Route path="/wallets" element={<Wallets />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/transactions" element={<Transactions />} />
+        <Route path="/ai-robot" element={<AiRobot />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />

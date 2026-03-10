@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle2, Clock, Zap, Eye, EyeOff, Filter } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, CheckCircle2, Clock, Zap, Eye, EyeOff } from 'lucide-react';
 
 /**
  * Dashboard de Monitoramento de Airdrops
@@ -66,32 +66,29 @@ export function AirdropMonitoringDashboard() {
       <div className="flex gap-2">
         <button
           onClick={() => setFiltro('all')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filtro === 'all'
+          className={`px-4 py-2 rounded-lg transition-colors ${filtro === 'all'
               ? 'bg-purple-600 text-white'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-          }`}
+            }`}
         >
           Todos ({protocolos.length})
         </button>
         <button
           onClick={() => setFiltro('with-alerts')}
-          className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-            filtro === 'with-alerts'
+          className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${filtro === 'with-alerts'
               ? 'bg-red-600 text-white'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-          }`}
+            }`}
         >
           <AlertTriangle size={16} />
           Alertas ({protocolos.filter(p => p.openAlerts > 0).length})
         </button>
         <button
           onClick={() => setFiltro('active')}
-          className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-            filtro === 'active'
+          className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${filtro === 'active'
               ? 'bg-green-600 text-white'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-          }`}
+            }`}
         >
           <Zap size={16} />
           Ativos ({protocolos.filter(p => p.summary.prontoPara.length > 0).length})
@@ -135,13 +132,12 @@ function ProtocolCard({ protocolo, expanded, onToggleExpand, onAcknowledgeAlert 
 
   return (
     <div
-      className={`rounded-lg border-2 transition-all ${
-        hasAlerts
+      className={`rounded-lg border-2 transition-all ${hasAlerts
           ? 'border-red-300 bg-red-50 dark:bg-red-900/20'
           : isActive
-          ? 'border-green-300 bg-green-50 dark:bg-green-900/20'
-          : 'border-gray-200 bg-white dark:bg-gray-800'
-      }`}
+            ? 'border-green-300 bg-green-50 dark:bg-green-900/20'
+            : 'border-gray-200 bg-white dark:bg-gray-800'
+        }`}
     >
       {/* Header Card */}
       <button
