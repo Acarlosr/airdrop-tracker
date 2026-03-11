@@ -145,10 +145,10 @@ export default function Layout({ children }) {
 
       {/* ── Main content ── */}
       <main className="ml-64 min-h-screen relative z-10">
-        {/* Top-right social + theme + auth */}
-        <div className="fixed top-4 right-8 z-30 flex items-center gap-3">
-          {/* Social links */}
-          <div className="flex items-center gap-2 mr-1">
+        {/* Top bar: social/theme à esquerda, login à direita */}
+        <div className="fixed top-4 left-64 right-8 z-30 flex items-center justify-between px-2">
+          {/* Social + referências + tema — à esquerda */}
+          <div className="flex items-center gap-2">
             <a
               href="https://discord.com"
               target="_blank"
@@ -246,6 +246,8 @@ export default function Layout({ children }) {
               )}
             </div>
           </div>
+          {/* Login / conta — à direita */}
+          <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
@@ -298,6 +300,7 @@ export default function Layout({ children }) {
               Entrar / Criar conta
             </button>
           )}
+          </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-8 py-8">

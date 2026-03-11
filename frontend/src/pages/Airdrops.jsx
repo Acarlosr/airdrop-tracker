@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Plus, X, Zap, Check, ExternalLink, Wallet } from 'lucide-react'
+import { ChevronRight, Plus, X, Zap, Check, ExternalLink, Wallet, Trash2 } from 'lucide-react'
 import { GlowCard } from '../components/GlowCard'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/Tabs'
 import api from '../services/api'
@@ -390,12 +390,19 @@ function AddAirdropModal({ onClose, onAdd }) {
                       </option>
                     ))}
                   </select>
-                  <p className="text-[11px] text-white/40 mt-1 flex items-center gap-1 flex-wrap">
-                    Rede vem de Configurações {'>'} Redes (RPC, explorer, etc.). Para adicionar:
-                    <Link to="/settings" className="text-electric/80 hover:text-electric inline-flex items-center gap-0.5" onClick={onClose}>
-                      Gerenciar redes <ExternalLink className="w-3 h-3" />
-                    </Link>
+                  <p className="text-[11px] text-white/40 mt-1">
+                    Redes vêm de Configurações. Hoje em dia há muitas redes — adicione as que você usa.
                   </p>
+                  <Link
+                    to="/settings"
+                    onClick={onClose}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors"
+                    style={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'rgba(255,140,0,0.08)' }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Adicionar nova rede
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
                 </div>
                 <div>
                   <label className="block text-xs text-white/50 mb-1.5">Status</label>
@@ -756,6 +763,14 @@ export default function Airdrops() {
     setList((prev) => [newItem, ...prev])
   }
 
+  const handleRemove = (e, id) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!window.confirm('Remover este airdrop da lista?')) return
+    api.deleteAirdrop(id).catch(() => {})
+    setList((prev) => prev.filter((x) => x.id !== id))
+  }
+
   return (
     <div>
       {/* Header */}
@@ -804,10 +819,20 @@ export default function Airdrops() {
             const tags = a.criteria?.tags || []
             const phaseMeta = getPhaseMeta(a.phase)
             return (
-              <Link key={a.id} to={`/airdrops/${encodeURIComponent(a.id)}`}>
+              <div key={a.id} className="relative group">
+                <button
+                  type="button"
+                  onClick={(e) => handleRemove(e, a.id)}
+                  className="absolute top-3 right-3 z-10 w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border"
+                  style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                  title="Remover airdrop"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <Link to={`/airdrops/${encodeURIComponent(a.id)}`}>
                 <GlowCard hoverGlow className="h-full flex flex-col">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-8">
                       <h3 className="font-semibold text-white truncate">{a.name}</h3>
                       <p className="text-xs text-white/40 mt-0.5">
                         {a.protocol || '—'} · {a.chain || net?.name || '—'}
@@ -877,7 +902,8 @@ export default function Airdrops() {
                     </p>
                   )}
                 </GlowCard>
-              </Link>
+                </Link>
+              </div>
             )
           })}
         </div>
