@@ -134,6 +134,7 @@ export function NetworksProvider({ children }) {
   return <NetworksContext.Provider value={value}>{children}</NetworksContext.Provider>
 }
 
+/* eslint-disable react-refresh/only-export-components -- hooks/helpers exported from context file */
 export function useNetworks() {
   const ctx = useContext(NetworksContext)
   if (!ctx) throw new Error('useNetworks deve ser usado dentro de NetworksProvider')

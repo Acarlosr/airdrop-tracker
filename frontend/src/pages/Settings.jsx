@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Bell, Cpu, Database, Globe, Shield, RefreshCw, Plus, Trash2, Edit3, Check, X } from 'lucide-react'
 import { GlowCard } from '../components/GlowCard'
 import api from '../services/api'
@@ -85,8 +85,6 @@ export default function Settings() {
     }
     cancelEdit()
   }
-
-  const activeNetworks = useMemo(() => networks.filter((n) => n.isActive), [networks])
 
   if (loading) {
     return (

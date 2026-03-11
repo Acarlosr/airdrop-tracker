@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Zap, Wallet, DollarSign,
-  ArrowLeftRight, Calendar, ChevronRight, Clock
+  ArrowLeftRight, Calendar, Clock
 } from 'lucide-react'
 import {
   AreaChart, Area, PieChart, Pie, Cell,
@@ -113,7 +113,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null)
   const [txSummary, setTxSummary] = useState(null)
   const [airdrops, setAirdrops] = useState([])
-  const [recentTx, setRecentTx] = useState([])
+  const [, setRecentTx] = useState([])
   const [loading, setLoading] = useState(true)
   const [assistantExpanded, setAssistantExpanded] = useState(false)
 
@@ -187,15 +187,6 @@ export default function Dashboard() {
     .map(([name, value]) => ({ name, value: parseFloat(value) }))
     .filter(d => d.value > 0)
     .sort((a, b) => b.value - a.value)
-
-  // Transaction type info for display
-  const TX_ICONS = {
-    invest: { emoji: '💰', color: 'text-[#7a9aff]' },
-    claim: { emoji: '🎁', color: 'text-emerald-400' },
-    swap: { emoji: '🔄', color: 'text-purple-400' },
-    gas: { emoji: '⛽', color: 'text-amber-400' },
-    fee: { emoji: '🏷️', color: 'text-red-400' },
-  }
 
   const today = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
