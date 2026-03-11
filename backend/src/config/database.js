@@ -46,15 +46,30 @@ const createTables = async () => {
         protocol VARCHAR(100),
         chain VARCHAR(50),
         status VARCHAR(50) DEFAULT 'active',
+        phase VARCHAR(30),
         total_supply BIGINT,
         snapshot_date TIMESTAMP,
         claim_start TIMESTAMP,
         claim_end TIMESTAMP,
+        tge_date TIMESTAMP,
+        vesting_end_date TIMESTAMP,
+        estimated_value VARCHAR(100),
+        wallet_ids JSONB,
+        wallet_status JSONB,
         criteria JSONB,
         links JSONB,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
+    `);
+
+    await client.query(`
+      ALTER TABLE airdrops ADD COLUMN IF NOT EXISTS phase VARCHAR(30);
+      ALTER TABLE airdrops ADD COLUMN IF NOT EXISTS tge_date TIMESTAMP;
+      ALTER TABLE airdrops ADD COLUMN IF NOT EXISTS vesting_end_date TIMESTAMP;
+      ALTER TABLE airdrops ADD COLUMN IF NOT EXISTS estimated_value VARCHAR(100);
+      ALTER TABLE airdrops ADD COLUMN IF NOT EXISTS wallet_ids JSONB;
+      ALTER TABLE airdrops ADD COLUMN IF NOT EXISTS wallet_status JSONB;
     `);
 
     // Wallets table

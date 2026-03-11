@@ -1,14 +1,24 @@
-# 🤖 Automação de Airdrops com IA
+# 🤖 ClaimOS — Automação de Airdrops com IA
 
 Plataforma de monitoramento, análise e automação de airdrops com foco em baixo custo, elegibilidade e inteligência operacional.
 
-A **Automação de Airdrops com IA** centraliza descoberta de oportunidades, monitoramento social, análise multi-chain, checagem de carteiras e alertas inteligentes em uma única experiência.
+A **ClaimOS** centraliza descoberta de oportunidades, monitoramento social, análise multi-chain, checagem de carteiras e alertas inteligentes em uma única experiência.
 
-A proposta é substituir o acompanhamento manual e disperso por um fluxo mais claro, no qual o usuário entende o que já fez, o que ainda precisa cumprir e quais oportunidades merecem prioridade.
+---
 
-Com uma arquitetura otimizada para tiers gratuitos, o projeto combina backend em Node.js/Fastify, frontend em React, integrações blockchain, modelos de IA e processamento assíncrono para escalar com eficiência.
+## 📁 Estrutura do repositório (Frontend e Backend separados)
 
-Além do dashboard, a plataforma evolui para uma base orientada a jobs e automações, preparando o caminho para agendamentos, retries, análises em lote e execuções mais robustas.
+O repositório está organizado em **duas partes bem separadas** para facilitar o deploy em provedores diferentes e manter atualizações independentes:
+
+| Parte      | Diretório   | Deploy recomendado | Descrição |
+|-----------|-------------|----------------------|-----------|
+| **Frontend** | [`frontend/`](./frontend) | **Vercel** (ou Netlify, etc.) | App React (Vite): painel, airdrops, portfólio, login. Configure **Root Directory = `frontend`** e variáveis `VITE_*`. |
+| **Backend**  | [`backend/`](./backend)  | **Railway**, **Render** ou similar | API Fastify: auth, CRUD airdrops, IA, blockchain. Configure **Root Directory = `backend`** e variáveis de ambiente (DB, Redis, API keys). |
+
+- **Frontend:** ver [frontend/README.md](./frontend/README.md) para comandos locais e instruções de deploy (Vercel).
+- **Backend:** ver [backend/README.md](./backend/README.md) para comandos locais e deploy (Railway/Render).
+
+Cada serviço tem seu próprio `package.json` e pode ser implantado de forma **independente**. No Vercel, aponte o projeto para a pasta `frontend`; no Railway/Render, aponte para a pasta `backend`. Depois, defina `VITE_API_URL` no frontend com a URL do backend em produção.
 
 ---
 

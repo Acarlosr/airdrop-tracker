@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -13,17 +12,6 @@ import Transactions from './pages/Transactions'
 import AiRobot from './pages/AiRobot'
 
 function App() {
-  const { isAuthenticated } = useAuth()
-
-  if (!isAuthenticated) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    )
-  }
-
   return (
     <Layout>
       <Routes>
@@ -36,7 +24,7 @@ function App() {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/ai-robot" element={<AiRobot />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

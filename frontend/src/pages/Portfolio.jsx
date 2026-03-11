@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs'
 import { Wallet, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import MoneyLegoGraph from '../components/MoneyLegoGraph';
 import ExitSequence from '../components/ExitSequence';
+import { GlowCard } from '../components/GlowCard';
 import api from '../services/api';
 
 /**
@@ -78,10 +79,10 @@ export function Portfolio({ wallet: walletProp }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+        <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
           Portfólio DeFi
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p style={{ color: 'var(--text-secondary)' }}>
           Rastreie posições, Money Lego e riscos de cascata
         </p>
       </div>
@@ -127,85 +128,86 @@ export function Portfolio({ wallet: walletProp }) {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Composição do Portfólio */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-              <h3 className="font-semibold text-lg mb-4">Composição</h3>
+            <GlowCard className="p-6">
+              <h3 className="font-semibold text-lg mb-4" style={{ color: 'var(--text-primary)' }}>Composição</h3>
               <div className="space-y-2">
                 {portfolio?.metrics?.portfolioComposition?.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                       {item.protocol}
                     </span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                      <div className="w-32 rounded-full h-2" style={{ background: 'rgba(255,255,255,0.08)' }}>
                         <div
-                          className="bg-purple-600 h-2 rounded-full"
-                          style={{ width: `${item.percentage}%` }}
+                          className="h-2 rounded-full"
+                          style={{ width: `${item.percentage}%`, background: 'var(--accent)' }}
                         />
                       </div>
-                      <span className="text-sm font-semibold">{item.percentage}%</span>
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{item.percentage}%</span>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </GlowCard>
 
             {/* Posições Abertas */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-              <h3 className="font-semibold text-lg mb-4">Posições Abertas</h3>
+            <GlowCard className="p-6">
+              <h3 className="font-semibold text-lg mb-4" style={{ color: 'var(--text-primary)' }}>Posições Abertas</h3>
               <div className="space-y-2">
                 {portfolio?.positions?.slice(0, 5).map((pos, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <div key={idx} className="flex items-center justify-between p-2 rounded" style={{ background: 'var(--surface-2)' }}>
                     <div>
-                      <p className="font-semibold text-sm">{pos.protocolo}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{pos.token}</p>
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{pos.protocolo}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{pos.token}</p>
                     </div>
-                    <p className="font-semibold">${pos.valor_usd?.toFixed(2)}</p>
+                    <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>${pos.valor_usd?.toFixed(2)}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </GlowCard>
           </div>
         </TabsContent>
 
         {/* Por Airdrop */}
         <TabsContent value="by-airdrop" className="space-y-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-            <h3 className="font-semibold text-lg mb-4">Selecione um Airdrop</h3>
+          <GlowCard className="p-6">
+            <h3 className="font-semibold text-lg mb-4" style={{ color: 'var(--text-primary)' }}>Selecione um Airdrop</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {portfolio?.airdrops?.map(airdrop => (
                 <button
                   key={airdrop.id}
                   onClick={() => setSelectedAirdrop(airdrop.id)}
-                  className={`p-3 rounded-lg transition-colors ${selectedAirdrop === airdrop.id
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
+                  className="p-3 rounded-lg transition-colors"
+                  style={{
+                    background: selectedAirdrop === airdrop.id ? 'var(--accent)' : 'var(--surface-2)',
+                    color: selectedAirdrop === airdrop.id ? '#0A0A0F' : 'var(--text-primary)',
+                  }}
                 >
                   <p className="text-sm font-semibold">{airdrop.name}</p>
                   <p className="text-xs opacity-75">${airdrop.total_value?.toFixed(0)}</p>
                 </button>
               ))}
             </div>
-          </div>
+          </GlowCard>
 
           {selectedAirdrop && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow space-y-4">
-              <h3 className="font-semibold text-lg">Detalhes do Airdrop</h3>
+            <GlowCard className="p-6 space-y-4">
+              <h3 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>Detalhes do Airdrop</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400">Investido</p>
-                  <p className="font-bold text-lg">$1,234.56</p>
+                  <p style={{ color: 'var(--text-secondary)' }}>Investido</p>
+                  <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>$1,234.56</p>
                 </div>
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400">Valor Atual</p>
-                  <p className="font-bold text-lg">$1,567.89</p>
+                  <p style={{ color: 'var(--text-secondary)' }}>Valor Atual</p>
+                  <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>$1,567.89</p>
                 </div>
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400">P&L</p>
-                  <p className="font-bold text-lg text-green-600">+$333.33</p>
+                  <p style={{ color: 'var(--text-secondary)' }}>P&L</p>
+                  <p className="font-bold text-lg" style={{ color: 'var(--success)' }}>+$333.33</p>
                 </div>
               </div>
-            </div>
+            </GlowCard>
           )}
         </TabsContent>
 
@@ -213,25 +215,25 @@ export function Portfolio({ wallet: walletProp }) {
         <TabsContent value="money-lego" className="space-y-4">
           {selectedAirdrop && moneyLegoGraph ? (
             <>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow" style={{ height: '400px' }}>
+              <GlowCard className="p-4" style={{ height: '400px' }}>
                 <MoneyLegoGraph graph={moneyLegoGraph} />
-              </div>
+              </GlowCard>
 
               {/* Risco Cascata */}
               {moneyLegoGraph?.riskAnalysis?.length > 0 && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <h4 className="font-semibold text-red-900 dark:text-red-200 mb-2 flex items-center gap-2">
+                <GlowCard className="p-4" style={{ borderColor: 'rgba(255,69,69,0.35)' }}>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--danger)' }}>
                     <AlertTriangle size={18} />
                     Pontos Críticos Detectados
                   </h4>
                   <div className="space-y-2">
                     {moneyLegoGraph.riskAnalysis.map((risk, idx) => (
-                      <p key={idx} className="text-sm text-red-800 dark:text-red-300">
+                      <p key={idx} className="text-sm" style={{ color: 'var(--text-primary)' }}>
                         • {risk.message}
                       </p>
                     ))}
                   </div>
-                </div>
+                </GlowCard>
               )}
 
               {/* Sequência de Saída */}
@@ -244,38 +246,38 @@ export function Portfolio({ wallet: walletProp }) {
               )}
             </>
           ) : (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-              <p className="text-blue-700">Selecione um airdrop para visualizar o grafo Money Lego</p>
-            </div>
+            <GlowCard className="p-6 text-center">
+              <p style={{ color: 'var(--text-secondary)' }}>Selecione um airdrop para visualizar o grafo Money Lego</p>
+            </GlowCard>
           )}
         </TabsContent>
 
         {/* Análise */}
         <TabsContent value="analysis" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-              <h3 className="font-semibold mb-4">Razão de Alavancagem</h3>
-              <p className="text-3xl font-bold text-purple-600">
+            <GlowCard className="p-6">
+              <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Razão de Alavancagem</h3>
+              <p className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>
                 {portfolio?.metrics?.leverageRatio?.toFixed(2)}x
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
                 {portfolio?.metrics?.leverageRatio < 1.2
                   ? '✓ Conservador'
                   : portfolio?.metrics?.leverageRatio < 1.5
                     ? '⚠️ Balanceado'
                     : '🔴 Alto Risco'}
               </p>
-            </div>
+            </GlowCard>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
-              <h3 className="font-semibold mb-4">Posições Abertas</h3>
-              <p className="text-3xl font-bold text-blue-600">
+            <GlowCard className="p-6">
+              <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Posições Abertas</h3>
+              <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
                 {portfolio?.metrics?.positionCount}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
                 protocolos monitorados
               </p>
-            </div>
+            </GlowCard>
           </div>
         </TabsContent>
       </Tabs>
@@ -288,22 +290,25 @@ export function Portfolio({ wallet: walletProp }) {
  */
 function MetricCard({ label, value, icon, color }) {
   const colorMap = {
-    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600',
-    red: 'bg-red-50 dark:bg-red-900/20 text-red-600',
-    green: 'bg-green-50 dark:bg-green-900/20 text-green-600',
-    yellow: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600'
+    blue: { iconBg: 'rgba(255,255,255,0.04)', iconColor: 'var(--text-primary)' },
+    red: { iconBg: 'rgba(255,69,69,0.08)', iconColor: 'var(--danger)' },
+    green: { iconBg: 'rgba(0,230,118,0.08)', iconColor: 'var(--success)' },
+    yellow: { iconBg: 'rgba(255,184,0,0.08)', iconColor: 'var(--warning)' }
   };
+  const palette = colorMap[color] || colorMap.blue;
 
   return (
-    <div className={`${colorMap[color]} rounded-lg p-4`}>
+    <GlowCard className="p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{label}</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: 'var(--text-primary)' }}>{value}</p>
         </div>
-        <div className="opacity-50">{icon}</div>
+        <div className="opacity-100 p-2 rounded-xl" style={{ background: palette.iconBg, color: palette.iconColor }}>
+          {icon}
+        </div>
       </div>
-    </div>
+    </GlowCard>
   );
 }
 

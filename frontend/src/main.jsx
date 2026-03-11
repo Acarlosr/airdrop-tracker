@@ -34,18 +34,22 @@ function Bootstrap() {
     Promise.all([
       import('react-router-dom'),
       import('./context/AuthContext'),
+      import('./context/NetworksContext'),
       import('./App.jsx'),
     ])
-      .then(([router, auth, app]) => {
+      .then(([router, auth, networksCtx, app]) => {
         if (cancelled) return
         clearTimeout(t)
         const Router = router.BrowserRouter
         const AuthProvider = auth.AuthProvider
+        const NetworksProvider = networksCtx.NetworksProvider
         const App = app.default
         const Wrapper = () => (
           <Router>
             <AuthProvider>
-              <App />
+              <NetworksProvider>
+                <App />
+              </NetworksProvider>
             </AuthProvider>
           </Router>
         )

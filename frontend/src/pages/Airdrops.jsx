@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Plus, X, Zap, Check } from 'lucide-react'
+import { ChevronRight, Plus, X, Zap, Check, ExternalLink, Wallet } from 'lucide-react'
 import { GlowCard } from '../components/GlowCard'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/Tabs'
 import api from '../services/api'
+import { useNetworks, findNetworkForAirdrop } from '../context/NetworksContext'
 
 // ── Helpers ───────────────────────────────────────────────────────
 const TESTNET_KEYWORDS = ['sepolia', 'goerli', 'testnet', 'test-', '-test']
@@ -74,13 +75,48 @@ const STATUS_OPTIONS = [
   { value: 'claiming', label: 'Claim aberto' },
 ]
 
+const PHASE_OPTIONS = [
+  { value: 'speculative', label: 'Especulativo' },
+  { value: 'confirmed', label: 'Confirmado' },
+  { value: 'live', label: 'Ao vivo' },
+  { value: 'claimable', label: 'Claimável' },
+  { value: 'ended', label: 'Encerrado' },
+]
+
+const WALLET_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pendente' },
+  { value: 'in_progress', label: 'Em progresso' },
+  { value: 'claimed', label: 'Claimed' },
+  { value: 'skip', label: 'Pular' },
+]
+
+function getPhaseMeta(phase) {
+  const map = {
+    speculative: { label: 'Especulativo', className: 'bg-white/10 text-white/70 border-white/15' },
+    confirmed: { label: 'Confirmado', className: 'bg-electric/15 text-electric border-electric/30' },
+    live: { label: 'Ao vivo', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+    claimable: { label: 'Claimável', className: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+    ended: { label: 'Encerrado', className: 'bg-red-500/15 text-red-400 border-red-500/30' },
+  }
+  return map[phase] || null
+}
+
 const EMPTY_FORM = {
   name: '', protocol: '', chain: '', status: 'active',
   total_supply: '', snapshot_date: '', claim_start: '', claim_end: '',
+  phase: '',
+  tgeDate: '',
+  vestingEndDate: '',
+  estimatedValue: '',
   website: '', twitter: '', discord: '',
   description: '', farm_value: '', funding: '',
   potential: '', cost: '',
+  networkId: '',
+  contractAddress: '',
   categories: [], tags: [],
+  customCategories: [], // categorias digitadas pelo usuário (além das pré-definidas)
+  walletIds: [],
+  walletStatus: {},
 }
 
 // ── Chip toggle button ────────────────────────────────────────────
@@ -104,14 +140,61 @@ function Chip({ emoji, label, active, onClick }) {
 
 // ── Add Airdrop Modal ─────────────────────────────────────────────
 function AddAirdropModal({ onClose, onAdd }) {
+  const { networks } = useNetworks()
+  const activeNetworks = networks.filter((n) => n.isActive)
   const [form, setForm] = useState(EMPTY_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const [section, setSection] = useState('basic') // 'basic' | 'details' | 'tags'
+  const [newCategoryInput, setNewCategoryInput] = useState('')
+  const [walletOptions, setWalletOptions] = useState([])
+  const [walletsLoading, setWalletsLoading] = useState(false)
+
+  const addCustomCategory = () => {
+    const name = newCategoryInput.trim()
+    if (!name) return
+    if ((form.customCategories || []).some((item) => item.toLowerCase() === name.toLowerCase())) return
+    setForm((p) => ({ ...p, customCategories: [...(p.customCategories || []), name] }))
+    setNewCategoryInput('')
+  }
+
+  useEffect(() => {
+    let active = true
+    const loadWallets = async () => {
+      setWalletsLoading(true)
+      try {
+        const res = await api.getWallets()
+        if (!active) return
+        setWalletOptions(res.data?.data ?? [])
+      } catch {
+        if (!active) return
+        setWalletOptions(getMockWalletChoices())
+      } finally {
+        if (active) setWalletsLoading(false)
+      }
+    }
+
+    loadWallets()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const handle = (e) => {
     const { name, value } = e.target
     setForm((p) => ({ ...p, [name]: value }))
+  }
+
+  const handleNetworkChange = (e) => {
+    const networkId = e.target.value
+    setForm((p) => {
+      const next = { ...p, networkId }
+      if (networkId && !p.chain) {
+        const net = activeNetworks.find((n) => n.id === networkId)
+        if (net) next.chain = net.name.toLowerCase()
+      }
+      return next
+    })
   }
 
   const toggleSet = (field, id) => {
@@ -123,32 +206,72 @@ function AddAirdropModal({ onClose, onAdd }) {
     })
   }
 
+  const toggleWallet = (walletId) => {
+    setForm((prev) => {
+      const selected = new Set(prev.walletIds || [])
+      const nextStatus = { ...(prev.walletStatus || {}) }
+
+      if (selected.has(walletId)) {
+        selected.delete(walletId)
+        delete nextStatus[walletId]
+      } else {
+        selected.add(walletId)
+        nextStatus[walletId] = nextStatus[walletId] || 'pending'
+      }
+
+      return {
+        ...prev,
+        walletIds: [...selected],
+        walletStatus: nextStatus,
+      }
+    })
+  }
+
+  const updateWalletStatus = (walletId, status) => {
+    setForm((prev) => ({
+      ...prev,
+      walletStatus: {
+        ...(prev.walletStatus || {}),
+        [walletId]: status,
+      },
+    }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setFormError('')
     if (!form.name.trim()) { setFormError('Nome é obrigatório.'); return }
-    if (!form.chain.trim()) { setFormError('Chain é obrigatória.'); return }
+    if (!form.chain.trim() && !form.networkId) { setFormError('Selecione uma rede ou preencha a chain.'); return }
 
     const id = slugify(form.name)
     const payload = {
       id,
       name: form.name.trim(),
       protocol: form.protocol.trim() || form.name.trim(),
-      chain: form.chain.trim(),
+      chain: form.chain.trim() || null,
       status: form.status,
+      phase: form.phase || null,
       total_supply: form.total_supply ? Number(form.total_supply) : null,
       snapshot_date: form.snapshot_date || null,
       claim_start: form.claim_start || null,
       claim_end: form.claim_end || null,
+      tgeDate: form.tgeDate || null,
+      vestingEndDate: form.vestingEndDate || null,
+      estimatedValue: form.estimatedValue.trim() || null,
+      walletIds: (form.walletIds || []).length ? form.walletIds : null,
+      walletStatus: (form.walletIds || []).length ? form.walletStatus : null,
       criteria: {
         categories: form.categories,
         tags: form.tags,
+        networkId: form.networkId || null,
         guide: {
           description: form.description || null,
           farm_value: form.farm_value || null,
           funding: form.funding || null,
           potential: form.potential || null,
           cost: form.cost || null,
+          contractAddress: form.contractAddress || null,
+          customCategories: (form.customCategories || []).length ? form.customCategories : null,
         },
       },
       links: {
@@ -248,20 +371,84 @@ function AddAirdropModal({ onClose, onAdd }) {
                 </div>
               </div>
 
-              {/* Chain + Status */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Rede + Status + Fase */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs text-white/50 mb-1.5">Chain <span className="text-red-400">*</span></label>
-                  <input name="chain" value={form.chain} onChange={handle} placeholder="Ex: arbitrum" list="chain-opts" className="input-field" required />
-                  <datalist id="chain-opts">
-                    {CHAIN_OPTIONS.map((c) => <option key={c} value={c} />)}
-                  </datalist>
+                  <label className="block text-xs text-white/50 mb-1.5">
+                    Rede (selecionar) <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    name="networkId"
+                    value={form.networkId}
+                    onChange={handleNetworkChange}
+                    className="input-field"
+                  >
+                    <option value="">— Escolher rede —</option>
+                    {activeNetworks.map((n) => (
+                      <option key={n.id} value={n.id}>
+                        {n.name} ({n.env === 'mainnet' ? 'Mainnet' : 'Testnet'})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-white/40 mt-1 flex items-center gap-1 flex-wrap">
+                    Rede vem de Configurações {'>'} Redes (RPC, explorer, etc.). Para adicionar:
+                    <Link to="/settings" className="text-electric/80 hover:text-electric inline-flex items-center gap-0.5" onClick={onClose}>
+                      Gerenciar redes <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </p>
                 </div>
                 <div>
                   <label className="block text-xs text-white/50 mb-1.5">Status</label>
                   <select name="status" value={form.status} onChange={handle} className="input-field">
-                    {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5">Fase</label>
+                  <select name="phase" value={form.phase} onChange={handle} className="input-field">
+                    <option value="">— Selecionar —</option>
+                    {PHASE_OPTIONS.map((phase) => (
+                      <option key={phase.value} value={phase.value}>
+                        {phase.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Chain + contrato (fallback manual) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5">Chain (texto livre)</label>
+                  <input
+                    name="chain"
+                    value={form.chain}
+                    onChange={handle}
+                    placeholder="Ex: arbitrum, base-sepolia"
+                    list="chain-opts"
+                    className="input-field"
+                  />
+                  <datalist id="chain-opts">
+                    {CHAIN_OPTIONS.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5">
+                    Endereço do contrato (opcional)
+                  </label>
+                  <input
+                    name="contractAddress"
+                    value={form.contractAddress}
+                    onChange={handle}
+                    placeholder="Ex: 0x7AE200168865D8eA7c277C28F7b39cD2348aF396"
+                    className="input-field font-mono text-xs"
+                  />
                 </div>
               </div>
 
@@ -278,11 +465,36 @@ function AddAirdropModal({ onClose, onAdd }) {
                       onClick={() => toggleSet('categories', cat.id)}
                     />
                   ))}
+                  {(form.customCategories || []).map((label, i) => (
+                    <span
+                      key={`custom-${i}`}
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full border border-[rgba(59,91,255,0.45)] text-[#7a9aff]"
+                      style={{ background: 'rgba(59,91,255,0.13)' }}
+                    >
+                      {label}
+                      <button type="button" onClick={() => setForm((p) => ({ ...p, customCategories: p.customCategories.filter((_, j) => j !== i) }))} className="hover:bg-white/20 rounded p-0.5">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="text"
+                    placeholder="Nova categoria (ex.: RWA, Meme)"
+                    className="input-field flex-1 text-sm"
+                    value={newCategoryInput}
+                    onChange={(e) => setNewCategoryInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomCategory(); } }}
+                  />
+                  <button type="button" onClick={addCustomCategory} className="btn-primary px-3 py-2 text-sm whitespace-nowrap">
+                    + Adicionar
+                  </button>
                 </div>
               </div>
 
               {/* Dates */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
                 <div>
                   <label className="block text-xs text-white/50 mb-1.5">Snapshot</label>
                   <input type="date" name="snapshot_date" value={form.snapshot_date} onChange={handle} className="input-field" />
@@ -295,12 +507,23 @@ function AddAirdropModal({ onClose, onAdd }) {
                   <label className="block text-xs text-white/50 mb-1.5">Fim Claim</label>
                   <input type="date" name="claim_end" value={form.claim_end} onChange={handle} className="input-field" />
                 </div>
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5">TGE</label>
+                  <input type="date" name="tgeDate" value={form.tgeDate} onChange={handle} className="input-field" />
+                </div>
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5">Fim do Vesting</label>
+                  <input type="date" name="vestingEndDate" value={form.vestingEndDate} onChange={handle} className="input-field" />
+                </div>
               </div>
 
-              {/* Total supply */}
+              {/* Oferta total (fichas) */}
               <div>
-                <label className="block text-xs text-white/50 mb-1.5">Total Supply (tokens)</label>
+                <label className="block text-xs text-white/50 mb-1.5">Oferta total (fichas)</label>
                 <input type="number" name="total_supply" value={form.total_supply} onChange={handle} placeholder="Ex: 1000000000" className="input-field" min="0" />
+                <p className="text-[11px] text-white/40 mt-1">
+                  Total de tokens do airdrop (supply da campanha; quantidade máxima de fichas que serão distribuídas).
+                </p>
               </div>
 
               {/* Links */}
@@ -328,16 +551,21 @@ function AddAirdropModal({ onClose, onAdd }) {
                 />
               </div>
 
-              {/* Farm value + Funding */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Farm value + Estimated value */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-white/50 mb-1.5">Valor do farm</label>
                   <input name="farm_value" value={form.farm_value} onChange={handle} placeholder="Ex: ~$50 já vale" className="input-field" />
                 </div>
                 <div>
-                  <label className="block text-xs text-white/50 mb-1.5">Funding / Investidores</label>
-                  <input name="funding" value={form.funding} onChange={handle} placeholder="Ex: Levantou $15M (a16z...)" className="input-field" />
+                  <label className="block text-xs text-white/50 mb-1.5">Valor estimado</label>
+                  <input name="estimatedValue" value={form.estimatedValue} onChange={handle} placeholder="Ex: $50-$200" className="input-field" />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-white/50 mb-1.5">Funding / Investidores</label>
+                <input name="funding" value={form.funding} onChange={handle} placeholder="Ex: Levantou $15M (a16z...)" className="input-field" />
               </div>
 
               {/* Potential + Cost */}
@@ -361,6 +589,73 @@ function AddAirdropModal({ onClose, onAdd }) {
                     <option value="alto">💸 Alto</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Wallet className="w-4 h-4 text-electric" />
+                  <label className="block text-xs text-white/50">Wallets participantes</label>
+                </div>
+                <p className="text-[11px] text-white/40 mb-3">
+                  Selecione as carteiras já cadastradas no sistema e defina o status individual de cada uma.
+                </p>
+                {walletsLoading ? (
+                  <div className="text-sm text-white/40">Carregando carteiras...</div>
+                ) : walletOptions.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/40">
+                    Nenhuma carteira cadastrada. Adicione em{' '}
+                    <Link to="/wallets" className="text-electric hover:underline" onClick={onClose}>
+                      Carteiras
+                    </Link>
+                    .
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {walletOptions.map((wallet) => {
+                      const walletId = wallet.address
+                      const selected = (form.walletIds || []).includes(walletId)
+
+                      return (
+                        <div
+                          key={walletId}
+                          className={`rounded-xl border p-3 transition-colors ${selected
+                            ? 'border-electric/30 bg-electric/5'
+                            : 'border-white/10 bg-white/[0.02]'
+                            }`}
+                        >
+                          <div className="flex flex-col md:flex-row md:items-center gap-3">
+                            <label className="flex items-start gap-3 flex-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => toggleWallet(walletId)}
+                                className="mt-1 accent-[#3b5bff]"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm text-white">{wallet.label || 'Carteira sem nome'}</p>
+                                <p className="text-xs text-white/40 font-mono break-all">{walletId}</p>
+                              </div>
+                            </label>
+
+                            {selected && (
+                              <select
+                                value={form.walletStatus?.[walletId] || 'pending'}
+                                onChange={(e) => updateWalletStatus(walletId, e.target.value)}
+                                className="input-field md:max-w-[180px]"
+                              >
+                                {WALLET_STATUS_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -424,7 +719,7 @@ function AddAirdropModal({ onClose, onAdd }) {
           </button>
           <button
             type="button"
-            disabled={submitting || !form.name.trim() || !form.chain.trim()}
+            disabled={submitting || !form.name.trim() || (!form.chain.trim() && !form.networkId)}
             onClick={handleSubmit}
             className="btn btn-primary px-5 py-2 disabled:opacity-50"
           >
@@ -438,6 +733,7 @@ function AddAirdropModal({ onClose, onAdd }) {
 
 // ── Main Page ─────────────────────────────────────────────────────
 export default function Airdrops() {
+  const { networks } = useNetworks()
   const [tab, setTab] = useState('todos')
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -503,8 +799,10 @@ export default function Airdrops() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((a) => {
+            const net = findNetworkForAirdrop(networks, a)
             const categories = a.criteria?.categories || []
             const tags = a.criteria?.tags || []
+            const phaseMeta = getPhaseMeta(a.phase)
             return (
               <Link key={a.id} to={`/airdrops/${encodeURIComponent(a.id)}`}>
                 <GlowCard hoverGlow className="h-full flex flex-col">
@@ -512,7 +810,7 @@ export default function Airdrops() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white truncate">{a.name}</h3>
                       <p className="text-xs text-white/40 mt-0.5">
-                        {a.protocol || '—'} · {a.chain || '—'}
+                        {a.protocol || '—'} · {a.chain || net?.name || '—'}
                       </p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-[#3b5bff] shrink-0 mt-0.5" />
@@ -546,6 +844,11 @@ export default function Airdrops() {
                     {a.status && (
                       <span className="text-xs text-white/30 capitalize">{a.status}</span>
                     )}
+                    {phaseMeta && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${phaseMeta.className}`}>
+                        {phaseMeta.label}
+                      </span>
+                    )}
                     {a.claim_start && (
                       <span className="text-xs text-white/25">
                         {new Date(a.claim_start).toLocaleDateString('pt-BR')}
@@ -567,6 +870,12 @@ export default function Airdrops() {
                       {tags.length > 2 && <span className="text-xs text-white/20">+{tags.length - 2} tags</span>}
                     </div>
                   )}
+
+                  {a.estimatedValue && (
+                    <p className="mt-3 text-sm text-white/70">
+                      Valor estimado: <span className="text-electric font-medium">{a.estimatedValue}</span>
+                    </p>
+                  )}
                 </GlowCard>
               </Link>
             )
@@ -586,10 +895,18 @@ export default function Airdrops() {
 
 function getMockAirdrops() {
   return [
-    { id: 'arbitrum-one', name: 'Arbitrum One', protocol: 'Arbitrum', chain: 'arbitrum', status: 'active', criteria: { categories: ['layer2', 'defi'] } },
-    { id: 'optimism-mainnet', name: 'Optimism', protocol: 'Optimism', chain: 'optimism', status: 'active', criteria: { categories: ['layer2'] } },
-    { id: 'base-mainnet', name: 'Base', protocol: 'Base', chain: 'base', status: 'active', criteria: { categories: ['layer2'] } },
-    { id: 'arbitrum-sepolia', name: 'Arbitrum Sepolia', protocol: 'Arbitrum', chain: 'arbitrum-sepolia', status: 'active', criteria: { categories: ['testnet'] } },
-    { id: 'base-sepolia', name: 'Base Sepolia', protocol: 'Base', chain: 'base-sepolia', status: 'active', criteria: { categories: ['testnet'] } },
+    { id: 'arbitrum-one', name: 'Arbitrum One', protocol: 'Arbitrum', chain: 'arbitrum', status: 'active', phase: 'confirmed', estimatedValue: '$50-$150', criteria: { categories: ['layer2', 'defi'] } },
+    { id: 'optimism-mainnet', name: 'Optimism', protocol: 'Optimism', chain: 'optimism', status: 'active', phase: 'live', estimatedValue: '$30-$120', criteria: { categories: ['layer2'] } },
+    { id: 'base-mainnet', name: 'Base', protocol: 'Base', chain: 'base', status: 'active', phase: 'speculative', criteria: { categories: ['layer2'] } },
+    { id: 'arbitrum-sepolia', name: 'Arbitrum Sepolia', protocol: 'Arbitrum', chain: 'arbitrum-sepolia', status: 'active', phase: 'live', criteria: { categories: ['testnet'] } },
+    { id: 'base-sepolia', name: 'Base Sepolia', protocol: 'Base', chain: 'base-sepolia', status: 'active', phase: 'claimable', estimatedValue: '$10-$40', criteria: { categories: ['testnet'] } },
+  ]
+}
+
+function getMockWalletChoices() {
+  return [
+    { address: '0x1234567890abcdef1234567890abcdef12345678', label: 'Main Wallet' },
+    { address: '0xabcdef1234567890abcdef1234567890abcdef12', label: 'Cold Storage' },
+    { address: '0x9876543210fedcba9876543210fedcba98765432', label: 'Wallet 3' },
   ]
 }

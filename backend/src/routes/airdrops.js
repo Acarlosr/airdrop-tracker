@@ -1,6 +1,27 @@
 import { query } from '../config/database.js';
 import logger from '../utils/logger.js';
 
+function normalizeAirdropRow(row) {
+  if (!row) return row;
+  const {
+    tge_date,
+    vesting_end_date,
+    estimated_value,
+    wallet_ids,
+    wallet_status,
+    ...rest
+  } = row;
+
+  return {
+    ...rest,
+    tgeDate: row.tgeDate ?? tge_date ?? null,
+    vestingEndDate: row.vestingEndDate ?? vesting_end_date ?? null,
+    estimatedValue: row.estimatedValue ?? estimated_value ?? null,
+    walletIds: row.walletIds ?? wallet_ids ?? null,
+    walletStatus: row.walletStatus ?? wallet_status ?? null,
+  };
+}
+
 export default async function airdropRoutes(fastify, options) {
   
   // GET /api/airdrops - List all airdrops
@@ -29,7 +50,7 @@ export default async function airdropRoutes(fastify, options) {
       
       return {
         success: true,
-        data: result.rows,
+        data: result.rows.map(normalizeAirdropRow),
         pagination: {
           limit,
           offset,
@@ -58,7 +79,7 @@ export default async function airdropRoutes(fastify, options) {
       
       return {
         success: true,
-        data: result.rows[0]
+        data: normalizeAirdropRow(result.rows[0])
       };
     } catch (err) {
       logger.error('Error fetching airdrop:', err);
@@ -74,10 +95,16 @@ export default async function airdropRoutes(fastify, options) {
       protocol,
       chain,
       status = 'active',
+      phase = null,
       total_supply,
       snapshot_date,
       claim_start,
       claim_end,
+      tgeDate = null,
+      vestingEndDate = null,
+      estimatedValue = null,
+      walletIds = null,
+      walletStatus = null,
       criteria,
       links
     } = request.body;
@@ -90,18 +117,35 @@ export default async function airdropRoutes(fastify, options) {
     try {
       const result = await query(
         `INSERT INTO airdrops 
-        (id, name, protocol, chain, status, total_supply, snapshot_date, claim_start, claim_end, criteria, links)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        (id, name, protocol, chain, status, phase, total_supply, snapshot_date, claim_start, claim_end, tge_date, vesting_end_date, estimated_value, wallet_ids, wallet_status, criteria, links)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING *`,
-        [id, name, protocol, chain, status, total_supply, snapshot_date, claim_start, claim_end, 
-         JSON.stringify(criteria), JSON.stringify(links)]
+        [
+          id,
+          name,
+          protocol,
+          chain,
+          status,
+          phase,
+          total_supply,
+          snapshot_date,
+          claim_start,
+          claim_end,
+          tgeDate,
+          vestingEndDate,
+          estimatedValue,
+          walletIds ? JSON.stringify(walletIds) : null,
+          walletStatus ? JSON.stringify(walletStatus) : null,
+          JSON.stringify(criteria),
+          JSON.stringify(links),
+        ]
       );
       
       logger.info(`New airdrop created: ${name}`);
       
       return {
         success: true,
-        data: result.rows[0]
+        data: normalizeAirdropRow(result.rows[0])
       };
     } catch (err) {
       if (err.code === '23505') { // Unique violation
@@ -117,15 +161,28 @@ export default async function airdropRoutes(fastify, options) {
     const { id } = request.params;
     const updates = request.body;
     
-    const allowedFields = ['status', 'snapshot_date', 'claim_start', 'claim_end', 'criteria', 'links'];
-    const updateFields = Object.keys(updates).filter(k => allowedFields.includes(k));
+    const allowedFields = {
+      status: 'status',
+      snapshot_date: 'snapshot_date',
+      claim_start: 'claim_start',
+      claim_end: 'claim_end',
+      criteria: 'criteria',
+      links: 'links',
+      phase: 'phase',
+      tgeDate: 'tge_date',
+      vestingEndDate: 'vesting_end_date',
+      estimatedValue: 'estimated_value',
+      walletIds: 'wallet_ids',
+      walletStatus: 'wallet_status',
+    };
+    const updateFields = Object.keys(updates).filter((k) => allowedFields[k]);
     
     if (updateFields.length === 0) {
       return reply.code(400).send({ error: 'No valid fields to update' });
     }
     
-    const setClause = updateFields.map((field, i) => `${field} = $${i + 2}`).join(', ');
-    const values = [id, ...updateFields.map(f => {
+    const setClause = updateFields.map((field, i) => `${allowedFields[field]} = $${i + 2}`).join(', ');
+    const values = [id, ...updateFields.map((f) => {
       if (typeof updates[f] === 'object') return JSON.stringify(updates[f]);
       return updates[f];
     })];
@@ -144,7 +201,7 @@ export default async function airdropRoutes(fastify, options) {
       
       return {
         success: true,
-        data: result.rows[0]
+        data: normalizeAirdropRow(result.rows[0])
       };
     } catch (err) {
       logger.error('Error updating airdrop:', err);

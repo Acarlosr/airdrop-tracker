@@ -69,8 +69,11 @@ export function MoneyLegoGraph({ graph, onSelectNode = null }) {
 
   if (!graph || graph.nodes.length === 0) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-        <p className="text-gray-500">Nenhuma cadeia Money Lego detectada</p>
+      <div
+        className="w-full h-full flex items-center justify-center rounded-lg border-2 border-dashed"
+        style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
+      >
+        <p style={{ color: 'var(--text-secondary)' }}>Nenhuma cadeia Money Lego detectada</p>
       </div>
     );
   }
@@ -90,9 +93,12 @@ export function MoneyLegoGraph({ graph, onSelectNode = null }) {
       </ReactFlow>
 
       {/* Legenda */}
-      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-4 z-10">
-        <p className="text-xs font-bold mb-2">Legenda:</p>
-        <div className="space-y-1 text-xs">
+      <div
+        className="absolute bottom-4 left-4 rounded-lg p-4 z-10 border"
+        style={{ background: 'rgba(5,5,9,0.92)', borderColor: 'var(--border)' }}
+      >
+        <p className="text-xs font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Legenda:</p>
+        <div className="space-y-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded bg-blue-500" />
             <span>Posição Normal</span>
@@ -105,20 +111,23 @@ export function MoneyLegoGraph({ graph, onSelectNode = null }) {
       </div>
 
       {/* Estatísticas */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-10 max-w-xs">
-        <h3 className="font-bold text-sm mb-2">Análise da Cadeia</h3>
+      <div
+        className="absolute top-4 right-4 rounded-lg p-4 z-10 max-w-xs border"
+        style={{ background: 'rgba(5,5,9,0.92)', borderColor: 'var(--border)' }}
+      >
+        <h3 className="font-bold text-sm mb-2" style={{ color: 'var(--text-primary)' }}>Análise da Cadeia</h3>
         <div className="space-y-2 text-xs">
           <div>
-            <p className="text-gray-600">Valor Total</p>
-            <p className="font-bold text-lg">${graph.totalValue?.toFixed(2)}</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Valor Total</p>
+            <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>${graph.totalValue?.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-gray-600">Protocolos</p>
-            <p className="font-bold">{graph.nodes.length}</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Protocolos</p>
+            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{graph.nodes.length}</p>
           </div>
           {graph.riskAnalysis && graph.riskAnalysis.length > 0 && (
-            <div className="bg-red-50 p-2 rounded border border-red-200">
-              <div className="flex items-center gap-1 text-red-700">
+            <div className="p-2 rounded border" style={{ background: 'rgba(255,69,69,0.08)', borderColor: 'rgba(255,69,69,0.35)' }}>
+              <div className="flex items-center gap-1" style={{ color: 'var(--danger)' }}>
                 <AlertTriangle size={14} />
                 <span className="font-bold">{graph.riskAnalysis.length} ponto(s) crítico(s)</span>
               </div>

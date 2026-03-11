@@ -1,6 +1,7 @@
 import axios from 'axios';
 import OpenAI from 'openai';
-import logger from '../utils/logger.js';
+import logger from '../../utils/logger.js';
+import { analyzeAirdropText } from './openrouter.js';
 
 // Ollama client (local)
 const ollamaClient = axios.create({
@@ -11,7 +12,7 @@ const ollamaClient = axios.create({
 // OpenRouter client (cloud - free tier)
 const openrouterClient = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY || 'sk-or-v1-dummy',
   defaultHeaders: {
     'HTTP-Referer': 'https://github.com/Acarlosr/airdrop-tracker',
     'X-Title': 'Airdrop Tracker'
@@ -21,7 +22,7 @@ const openrouterClient = new OpenAI({
 // Groq client (fast inference - free tier)
 const groqClient = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY
+  apiKey: process.env.GROQ_API_KEY || 'gsk_dummy'
 });
 
 // AI Provider Strategy
@@ -32,31 +33,31 @@ class AIService {
     this.openrouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free';
     this.groqModel = process.env.GROQ_MODEL || 'llama-3-8b-8192';
   }
-  
+
   /**
    * Analyze text with AI
    * Strategy: Ollama for batch, Groq for real-time, OpenRouter as fallback
    */
   async analyze(text, options = {}) {
     const { mode = 'batch', systemPrompt = '', temperature = 0.7 } = options;
-    
+
     try {
       // Use Groq for real-time/urgent analysis (fastest)
       if (mode === 'realtime' || mode === 'urgent') {
         return await this.analyzeWithGroq(text, systemPrompt, temperature);
       }
-      
+
       // Use Ollama for batch processing (free, local)
       if (this.useOllama && mode === 'batch') {
         return await this.analyzeWithOllama(text, systemPrompt, temperature);
       }
-      
+
       // Fallback to OpenRouter
       return await this.analyzeWithOpenRouter(text, systemPrompt, temperature);
-      
+
     } catch (err) {
       logger.error('AI analysis error:', err.message);
-      
+
       // Fallback chain: Ollama -> OpenRouter -> Groq
       if (this.useOllama && mode !== 'batch') {
         try {
@@ -65,7 +66,7 @@ class AIService {
           logger.warn('Ollama fallback failed, trying OpenRouter');
         }
       }
-      
+
       if (mode !== 'realtime') {
         try {
           return await this.analyzeWithOpenRouter(text, systemPrompt, temperature);
@@ -73,14 +74,14 @@ class AIService {
           logger.warn('OpenRouter fallback failed, trying Groq');
         }
       }
-      
+
       return await this.analyzeWithGroq(text, systemPrompt, temperature);
     }
   }
-  
+
   async analyzeWithOllama(text, systemPrompt, temperature) {
     logger.debug('Using Ollama for analysis');
-    
+
     const response = await ollamaClient.post('/api/generate', {
       model: this.ollamaModel,
       prompt: `${systemPrompt}\n\n${text}`,
@@ -89,13 +90,13 @@ class AIService {
         temperature
       }
     });
-    
+
     return response.data.response;
   }
-  
+
   async analyzeWithOpenRouter(text, systemPrompt, temperature) {
     logger.debug('Using OpenRouter for analysis');
-    
+
     const response = await openrouterClient.chat.completions.create({
       model: this.openrouterModel,
       messages: [
@@ -104,13 +105,13 @@ class AIService {
       ],
       temperature
     });
-    
+
     return response.choices[0].message.content;
   }
-  
+
   async analyzeWithGroq(text, systemPrompt, temperature) {
     logger.debug('Using Groq for analysis');
-    
+
     const response = await groqClient.chat.completions.create({
       model: this.groqModel,
       messages: [
@@ -119,10 +120,10 @@ class AIService {
       ],
       temperature
     });
-    
+
     return response.choices[0].message.content;
   }
-  
+
   /**
    * Analyze social media post for airdrop information
    */
@@ -146,7 +147,7 @@ Respond in JSON format only.`;
       systemPrompt,
       temperature: 0.3 // Lower temperature for structured extraction
     });
-    
+
     try {
       return JSON.parse(response);
     } catch (err) {
@@ -158,7 +159,7 @@ Respond in JSON format only.`;
       };
     }
   }
-  
+
   /**
    * Classify urgency of an alert
    */
@@ -176,10 +177,10 @@ Low: Info, discussions, non-urgent updates`;
       systemPrompt,
       temperature: 0.1
     });
-    
+
     return response.trim().toLowerCase();
   }
-  
+
   /**
    * Extract structured data from text
    */
@@ -194,7 +195,7 @@ Respond with JSON only, following the exact schema structure.`;
       systemPrompt,
       temperature: 0.2
     });
-    
+
     try {
       return JSON.parse(response);
     } catch (err) {
@@ -204,4 +205,5 @@ Respond with JSON only, following the exact schema structure.`;
   }
 }
 
+export { analyzeAirdropText };
 export default new AIService();

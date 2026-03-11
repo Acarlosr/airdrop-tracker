@@ -9,29 +9,44 @@
   line-height: 1.5;
   font-weight: 400;
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.88);
-  background-color: #07070f;
+  color: rgba(240, 240, 245, 0.95);
+  background-color: #050509;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* ── New premium blue-indigo palette ── */
-  --accent: #3b5bff;
-  --accent-bright: #4f6fff;
-  --accent-dim: #2a44e8;
-  --accent-glow: rgba(59, 91, 255, 0.30);
-  --accent-subtle: rgba(59, 91, 255, 0.08);
-
-  /* Surfaces */
-  --surface: #07070f;
-  --surface-card: #0e0e1a;
-  --surface-elevated: #14142a;
-  --surface-hover: #1a1a32;
+  /* ── Crypto Labs inspired palette (dark + orange accent) ── */
+  --background: #050509;
+  --surface: #0C0C13;
+  --surface-2: #14141F;
   --border: rgba(255, 255, 255, 0.07);
-  --border-accent: rgba(59, 91, 255, 0.30);
+  --border-accent: rgba(255, 140, 0, 0.3);
 
-  /* Legacy alias so old code still works */
+  --accent: #FF8C00;
+  --accent-bright: #FFA333;
+  --accent-dim: #CC6F00;
+  --accent-glow: rgba(255, 140, 0, 0.25);
+  --accent-subtle: rgba(255, 140, 0, 0.18);
+
+  --success: #00E676;
+  --success-muted: rgba(0, 230, 118, 0.12);
+  --danger: #FF4545;
+  --danger-muted: rgba(255, 69, 69, 0.12);
+  --warning: #FFB800;
+
+  --text-primary: #F0F0F5;
+  --text-secondary: #888896;
+  --text-muted: #555560;
+
+  --sidebar-bg: #050509;
+  --sidebar-active: rgba(255, 140, 0, 0.12);
+  --sidebar-active-border: #FF8C00;
+
+  /* Backwards‑compat for código antigo */
+  --surface-card: var(--surface);
+  --surface-elevated: var(--surface-2);
+  --surface-hover: #20202A;
   --electric: var(--accent);
   --electric-glow: var(--accent-glow);
 }
@@ -40,12 +55,86 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--surface);
+  background: var(--background);
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+}
+
+/* ── Light theme overrides ───────────────────────────────────────── */
+[data-theme='light'] {
+  color-scheme: light;
+  --background: #F3F4F7;
+  --surface: #FFFFFF;
+  --surface-2: #F5F6FA;
+  --border: rgba(15, 23, 42, 0.08);
+  --border-accent: rgba(255, 140, 0, 0.45);
+
+  --accent: #FF8C00;
+  --accent-bright: #FF9F2A;
+  --accent-dim: #C36B00;
+  --accent-glow: rgba(255, 140, 0, 0.35);
+  --accent-subtle: rgba(255, 140, 0, 0.14);
+
+  --success: #00B35A;
+  --success-muted: rgba(0, 179, 90, 0.1);
+  --danger: #E53935;
+  --danger-muted: rgba(229, 57, 53, 0.12);
+  --warning: #F9A825;
+
+  --text-primary: #13141A;
+  --text-secondary: #4B4D5C;
+  --text-muted: #8A8FA0;
+
+  --sidebar-bg: #FFFFFF;
+  --sidebar-active: rgba(255, 140, 0, 0.08);
+  --sidebar-active-border: #FF8C00;
+
+  --surface-card: var(--surface);
+  --surface-elevated: var(--surface-2);
+  --surface-hover: #ECEFF5;
+}
+
+[data-theme='light'] body {
+  background: var(--background);
+}
+
+/* Ajuste de utilitários Tailwind no tema claro (melhor contraste) */
+[data-theme='light'] .text-white {
+  color: var(--text-primary) !important;
+}
+[data-theme='light'] .text-white\/80 {
+  color: rgba(19, 20, 26, 0.8) !important;
+}
+[data-theme='light'] .text-white\/70 {
+  color: rgba(19, 20, 26, 0.7) !important;
+}
+[data-theme='light'] .text-white\/60 {
+  color: rgba(19, 20, 26, 0.6) !important;
+}
+[data-theme='light'] .text-white\/50 {
+  color: rgba(19, 20, 26, 0.55) !important;
+}
+[data-theme='light'] .text-white\/40 {
+  color: rgba(19, 20, 26, 0.4) !important;
+}
+[data-theme='light'] .text-white\/30 {
+  color: rgba(19, 20, 26, 0.35) !important;
+}
+
+[data-theme='light'] .border-white\/10 {
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+[data-theme='light'] .border-white\/5 {
+  border-color: rgba(15, 23, 42, 0.03) !important;
+}
+[data-theme='light'] .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.4) !important;
+}
+[data-theme='light'] .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
 }
 
 /* ── Components ──────────────────────────────────────────────────── */
@@ -58,7 +147,7 @@ body {
     border-color: var(--border);
   }
 
-  /* Card with blue glow */
+  /* Card with soft glow */
   .card-glow {
     @apply rounded-2xl p-6 border relative overflow-hidden transition-all duration-300;
     background: var(--surface-card);
@@ -69,13 +158,13 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(59, 91, 255, 0.06) 0%, transparent 60%);
+    background: linear-gradient(135deg, rgba(255, 140, 0, 0.09) 0%, transparent 60%);
     pointer-events: none;
   }
 
   .card-glow:hover {
     border-color: var(--border-accent);
-    box-shadow: 0 0 0 1px rgba(59, 91, 255, 0.15), 0 8px 32px rgba(59, 91, 255, 0.12);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 14px 40px rgba(0, 0, 0, 0.85);
   }
 
   .card-glow-active {
@@ -97,7 +186,7 @@ body {
 
   .btn-primary:hover {
     background: var(--accent-bright);
-    box-shadow: 0 6px 28px rgba(59, 91, 255, 0.45);
+    box-shadow: 0 6px 28px rgba(255, 140, 0, 0.55);
     transform: translateY(-1px);
   }
 
@@ -119,9 +208,9 @@ body {
   }
 
   .badge-electric {
-    background: rgba(59, 91, 255, 0.15);
-    color: #7a9aff;
-    border: 1px solid rgba(59, 91, 255, 0.30);
+    background: var(--accent-subtle);
+    color: var(--accent-bright);
+    border: 1px solid var(--border-accent);
   }
 
   .badge-success {
@@ -155,15 +244,15 @@ body {
   text-shadow: 0 0 28px var(--accent-glow);
 }
 
-/* ── Blue gradient blob (background atmosphere) ──────────────────── */
+/* ── Subtle gradient blob (background atmosphere) ────────────────── */
 body::before {
   content: '';
   position: fixed;
-  top: -20vh;
+  top: -25vh;
   left: -10vw;
-  width: 60vw;
-  height: 60vh;
-  background: radial-gradient(ellipse at center, rgba(37, 56, 200, 0.18) 0%, transparent 70%);
+  width: 55vw;
+  height: 55vh;
+  background: radial-gradient(ellipse at center, rgba(255, 140, 0, 0.12) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -175,16 +264,16 @@ body::before {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--surface);
+  background: var(--surface-2);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--surface-elevated);
+  background: var(--border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 91, 255, 0.5);
+  background: var(--accent);
 }
 
 /* ── Form inputs ─────────────────────────────────────────────────── */
@@ -196,8 +285,8 @@ body::before {
 }
 
 .input-field:focus {
-  border-color: rgba(59, 91, 255, 0.45);
-  box-shadow: 0 0 0 3px rgba(59, 91, 255, 0.10);
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.22);
 }
 
 .input-field option {
@@ -206,7 +295,7 @@ body::before {
 
 /* ── Sidebar nav link active ─────────────────────────────────────── */
 .nav-active {
-  background: var(--accent-subtle);
+  background: var(--sidebar-active);
   color: var(--accent-bright) !important;
-  border-left: 2px solid var(--accent);
+  border-left: 3px solid var(--accent);
 }

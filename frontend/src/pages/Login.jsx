@@ -131,8 +131,8 @@ export default function Login() {
             <div className="p-3 rounded-xl bg-electric/10 border border-electric/20 mb-4">
               <Zap className="w-10 h-10 text-electric" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Airdrop Tracker</h1>
-            <p className="text-white/50 text-sm mt-1">DApp • Conecte com Google + OTP</p>
+            <h1 className="text-2xl font-bold text-white">ClaimOS</h1>
+            <p className="text-white/50 text-sm mt-1">Conecte-se com Google + código OTP</p>
           </div>
 
           {error && (

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Loader, MessageCircle } from 'lucide-react';
 import api from '../services/api';
 
-export function AiBotChat({ wallet }) {
+export function AiBotChat({ wallet, collapsed = false }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -85,83 +85,109 @@ export function AiBotChat({ wallet }) {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 rounded-lg border border-purple-500/30">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-900 to-purple-800 p-4 rounded-t-lg border-b border-purple-700">
-        <div className="flex items-center gap-2 mb-2">
-          <MessageCircle className="w-5 h-5 text-purple-300" />
-          <h2 className="text-lg font-bold text-white">Assistente de IA</h2>
-        </div>
-        <p className="text-xs text-purple-200">
-          Peça para verificar airdrops, executar ações ou analisar oportunidades
-        </p>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 && (
-          <div className="text-center text-gray-400 mt-8">
-            <p className="text-sm">Olá! 👋</p>
-            <p className="text-xs mt-2">Tente perguntar:</p>
-            <p className="text-xs mt-1 text-purple-300">"Quais airdrops sou elegível?"</p>
-            <p className="text-xs mt-3 text-gray-500">ou</p>
-            <p className="text-xs mt-1 text-purple-300">"Faça claim no Arbitrum"</p>
+    <div className="flex flex-col h-full rounded-xl border"
+      style={{ background: 'var(--surface)', borderColor: 'var(--border-accent)' }}>
+      {!collapsed && (
+        <>
+          {/* Header */}
+          <div className="px-4 py-3 border-b flex items-center gap-2"
+            style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
+            <MessageCircle className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            <div>
+              <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Assistente de IA
+              </h2>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                Pergunte sobre airdrops, P&amp;L ou oportunidades.
+              </p>
+            </div>
           </div>
-        )}
 
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg text-sm ${msg.role === 'user'
-                ? 'bg-purple-600 text-white rounded-br-none'
-                : 'bg-gray-800 text-gray-100 border border-purple-500/30 rounded-bl-none'
-                }`}
-            >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
-              {msg.actions && msg.actions.length > 0 && (
-                <div className="mt-2 text-xs space-y-1">
-                  {msg.actions.map((action, i) => (
-                    <div key={i} className="bg-black/30 p-2 rounded border border-yellow-500/50">
-                      ⚙️ {action.type?.toUpperCase()} • {action.protocol} • {action.chain}
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {messages.length === 0 && (
+              <div className="text-center mt-4" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm">Olá! 👋</p>
+                <p className="text-xs mt-2">Tente perguntar:</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--accent-bright)' }}>"Quais airdrops sou elegível?"</p>
+                <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>ou</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--accent-bright)' }}>"Mostre meu P&amp;L deste mês"</p>
+              </div>
+            )}
+
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg text-sm ${msg.role === 'user'
+                    ? 'rounded-br-none'
+                    : 'rounded-bl-none'
+                    }`}
+                  style={
+                    msg.role === 'user'
+                      ? { background: 'var(--accent)', color: '#0A0A0F' }
+                      : { background: 'var(--surface-2)', color: 'var(--text-primary)', border: '1px solid var(--border)' }
+                  }
+                >
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  {msg.actions && msg.actions.length > 0 && (
+                    <div className="mt-2 text-xs space-y-1">
+                      {msg.actions.map((action, i) => (
+                        <div key={i} className="p-2 rounded"
+                          style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid var(--warning)' }}>
+                          ⚙️ {action.type?.toUpperCase()} • {action.protocol} • {action.chain}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex justify-start">
+                <div className="px-4 py-3 rounded-lg rounded-bl-none border"
+                  style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}>
+                  <Loader className="w-4 h-4 animate-spin" style={{ color: 'var(--accent-bright)' }} />
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
           </div>
-        ))}
+        </>
+      )}
 
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-800 border border-purple-500/30 px-4 py-3 rounded-lg rounded-bl-none">
-              <Loader className="w-4 h-4 animate-spin text-purple-400" />
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <form onSubmit={handleSendMessage} className="border-t border-purple-500/30 p-4 bg-gray-800/50">
+      {/* Input (também usado no modo colapsado) */}
+      <form onSubmit={handleSendMessage} className="border-t px-4 py-3"
+        style={{ borderColor: 'var(--border)', background: 'rgba(0,0,0,0.35)' }}>
         <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Digite sua pergunta ou comando..."
-            className="flex-1 bg-gray-700 border border-purple-500/30 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 text-sm"
+            placeholder="Pergunte ao assistente..."
+            className="flex-1 rounded-lg px-3 py-2 text-sm"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
             disabled={loading || !wallet}
           />
           <button
             type="submit"
             disabled={loading || !input.trim() || !wallet}
-            className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 px-4 py-2 rounded transition flex items-center gap-2"
+            className="rounded-lg px-4 py-2 flex items-center gap-2 text-sm font-medium disabled:opacity-60"
+            style={{ background: 'var(--accent)', color: '#0A0A0F' }}
           >
             <Send className="w-4 h-4" />
           </button>
         </div>
-        {!wallet && <p className="text-xs text-red-400 mt-2">Conecte sua wallet para usar o bot</p>}
+        {!wallet && (
+          <p className="text-xs mt-2" style={{ color: 'var(--danger)' }}>
+            Conecte sua wallet para usar o bot.
+          </p>
+        )}
       </form>
     </div>
   );

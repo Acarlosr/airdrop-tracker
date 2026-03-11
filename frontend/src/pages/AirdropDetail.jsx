@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Calendar, Link as LinkIcon, ExternalLink, DollarSign,
-  BookOpen, ListOrdered, Lightbulb, HelpCircle, Zap, Tag, Edit3,
+  BookOpen, ListOrdered, Lightbulb, HelpCircle, Zap, Tag, Edit3, Wallet,
   Save, X, Check,
 } from 'lucide-react'
 import { GlowCard } from '../components/GlowCard'
 import api from '../services/api'
+import { useNetworks, findNetworkForAirdrop } from '../context/NetworksContext'
 
 // ── Helpers ───────────────────────────────────────────────────────
 const TESTNET_KEYWORDS = ['sepolia', 'goerli', 'testnet', 'test-', '-test']
@@ -18,6 +19,38 @@ function formatDate(v) {
   if (!v) return '—'
   const d = new Date(v)
   return isNaN(d.getTime()) ? v : d.toLocaleDateString('pt-BR', { dateStyle: 'medium' })
+}
+
+function getPhaseMeta(phase) {
+  const map = {
+    speculative: { label: 'Especulativo', variant: 'default' },
+    confirmed: { label: 'Confirmado', variant: 'electric' },
+    live: { label: 'Ao vivo', variant: 'green' },
+    claimable: { label: 'Claimável', variant: 'amber' },
+    ended: { label: 'Encerrado', variant: 'red' },
+  }
+  return map[phase] || null
+}
+
+function getWalletStatusMeta(status) {
+  const map = {
+    pending: { label: 'Pendente', variant: 'default' },
+    in_progress: { label: 'Em progresso', variant: 'electric' },
+    claimed: { label: 'Claimed', variant: 'green' },
+    skip: { label: 'Pular', variant: 'red' },
+  }
+  return map[status] || { label: status || '—', variant: 'default' }
+}
+
+function buildExplorerAddressUrl(network, walletAddress) {
+  if (!walletAddress) return null
+  if (network?.explorerAddressTemplate) {
+    return network.explorerAddressTemplate.replace('{wallet}', walletAddress)
+  }
+  if (network?.explorerUrl) {
+    return `${network.explorerUrl.replace(/\/$/, '')}/address/${walletAddress}`
+  }
+  return null
 }
 
 // ── Available tags (like the screenshot) ─────────────────────────
@@ -356,10 +389,28 @@ function EditInfoPanel({ airdrop, onSave }) {
 // ── Main Component ────────────────────────────────────────────────
 export default function AirdropDetail() {
   const { id } = useParams()
+  const { networks } = useNetworks()
   const [airdrop, setAirdrop] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [tags, setTags] = useState([])
+  const [wallets, setWallets] = useState([])
+
+  useEffect(() => {
+    let active = true
+    api.getWallets()
+      .then((res) => {
+        if (!active) return
+        setWallets(res.data?.data ?? [])
+      })
+      .catch(() => {
+        if (!active) return
+        setWallets(getMockWallets())
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -430,6 +481,7 @@ export default function AirdropDetail() {
   const criteria = a.criteria || {}
   const guide = criteria.guide || {}
   const links = a.links || {}
+  const network = findNetworkForAirdrop(networks, a)
 
   const farmValue = guide.farm_value || a.farm_value
   const funding = guide.funding || a.funding
@@ -441,6 +493,18 @@ export default function AirdropDetail() {
   const potential = guide.potential || criteria.potential
   const cost = guide.cost || criteria.cost
   const statusLabel = guide.status_label || a.status
+  const phaseMeta = getPhaseMeta(a.phase)
+  const estimatedValue = a.estimatedValue || guide.estimatedValue || null
+  const walletIds = Array.isArray(a.walletIds) ? a.walletIds : []
+  const walletStatus = a.walletStatus || {}
+  const walletMap = new Map(wallets.map((wallet) => [wallet.address, wallet]))
+  const timelineItems = [
+    { key: 'snapshot', label: 'Snapshot', value: a.snapshot_date },
+    { key: 'claim-start', label: 'Início do claim', value: a.claim_start },
+    { key: 'claim-end', label: 'Fim do claim', value: a.claim_end },
+    { key: 'tge', label: 'TGE', value: a.tgeDate },
+    { key: 'vesting-end', label: 'Fim do vesting', value: a.vestingEndDate },
+  ].filter((item) => item.value)
 
   // Build link list
   const linkList = Object.entries(links).filter(([, v]) => v && typeof v === 'string' && v.startsWith('http'))
@@ -461,6 +525,7 @@ export default function AirdropDetail() {
               {isTestnet(a.chain) ? 'Testnet' : 'Mainnet'}
             </Badge>
             {a.chain && <Badge>{a.chain}</Badge>}
+            {phaseMeta && <Badge variant={phaseMeta.variant}>{phaseMeta.label}</Badge>}
             {statusLabel && (
               <Badge variant={
                 String(statusLabel).toLowerCase().includes('andamento') ? 'green' :
@@ -471,6 +536,7 @@ export default function AirdropDetail() {
             )}
             {cost && <Badge>Custo {cost}</Badge>}
             {potential && <Badge variant="electric">Potencial {potential}</Badge>}
+            {estimatedValue && <Badge variant="electric">Estimado {estimatedValue}</Badge>}
           </div>
           {(a.protocol || a.chain) && (
             <p className="text-white/50 mt-2 text-sm">
@@ -491,8 +557,8 @@ export default function AirdropDetail() {
       <TagsPanel activeTags={tags} onChange={handleTagsChange} />
 
       {/* Summary cards */}
-      {(farmValue || a.chain || funding) && (
-        <div className="grid gap-4 sm:grid-cols-3">
+      {(farmValue || estimatedValue || a.chain || funding) && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {farmValue && (
             <GlowCard>
               <div className="flex items-center gap-2 text-electric mb-1">
@@ -500,6 +566,15 @@ export default function AirdropDetail() {
                 <span className="font-semibold text-white text-sm">Valor do farm</span>
               </div>
               <p className="text-white/80 text-sm">{farmValue}</p>
+            </GlowCard>
+          )}
+          {estimatedValue && (
+            <GlowCard>
+              <div className="flex items-center gap-2 text-electric mb-1">
+                <DollarSign className="w-5 h-5" />
+                <span className="font-semibold text-white text-sm">Valor estimado</span>
+              </div>
+              <p className="text-white/80 text-sm">{estimatedValue}</p>
             </GlowCard>
           )}
           {a.chain && (
@@ -611,28 +686,37 @@ export default function AirdropDetail() {
         </GlowCard>
       )}
 
-      {/* Dates + Links */}
+      {/* Dates + Wallets */}
       <div className="grid gap-6 lg:grid-cols-2">
         <GlowCard>
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-electric" /> Datas
           </h2>
-          <ul className="space-y-2 text-sm">
-            <li className="flex justify-between">
-              <span className="text-white/60">Snapshot</span>
-              <span className="text-white">{formatDate(a.snapshot_date)}</span>
-            </li>
-            <li className="flex justify-between">
-              <span className="text-white/60">Início do claim</span>
-              <span className="text-white">{formatDate(a.claim_start)}</span>
-            </li>
-            <li className="flex justify-between">
-              <span className="text-white/60">Fim do claim</span>
-              <span className="text-white">{formatDate(a.claim_end)}</span>
-            </li>
+          {timelineItems.length > 0 ? (
+            <div className="space-y-4">
+              {timelineItems.map((item, index) => (
+                <div key={item.key} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <span className="w-3 h-3 rounded-full bg-electric shadow-glow" />
+                    {index < timelineItems.length - 1 && (
+                      <span className="w-px flex-1 bg-electric/20 mt-2 min-h-[28px]" />
+                    )}
+                  </div>
+                  <div className="pb-1">
+                    <p className="text-sm text-white">{item.label}</p>
+                    <p className="text-sm text-white/55">{formatDate(item.value)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-white/40 text-sm">Nenhuma data adicional cadastrada.</p>
+          )}
+
+          <ul className="space-y-2 text-sm mt-5 pt-5 border-t border-white/10">
             {a.total_supply != null && (
               <li className="flex justify-between">
-                <span className="text-white/60">Supply total</span>
+                <span className="text-white/60">Oferta total</span>
                 <span className="text-white">{Number(a.total_supply).toLocaleString('pt-BR')}</span>
               </li>
             )}
@@ -640,6 +724,49 @@ export default function AirdropDetail() {
         </GlowCard>
 
         <GlowCard>
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Wallet className="w-5 h-5 text-electric" /> Wallets participantes
+          </h2>
+          {walletIds.length === 0 ? (
+            <p className="text-white/40 text-sm">Nenhuma wallet vinculada a este airdrop.</p>
+          ) : (
+            <div className="space-y-3">
+              {walletIds.map((walletId) => {
+                const wallet = walletMap.get(walletId)
+                const statusMeta = getWalletStatusMeta(walletStatus?.[walletId] || 'pending')
+                const explorerUrl = buildExplorerAddressUrl(network, walletId)
+
+                return (
+                  <div key={walletId} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm text-white">{wallet?.label || 'Carteira sem nome'}</p>
+                        <p className="text-xs text-white/40 font-mono break-all">{walletId}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                        {explorerUrl && (
+                          <a
+                            href={explorerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-electric hover:underline"
+                          >
+                            Ver no explorer <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </GlowCard>
+      </div>
+
+      {/* Links */}
+      <GlowCard>
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <LinkIcon className="w-5 h-5 text-electric" /> Links
           </h2>
@@ -661,8 +788,7 @@ export default function AirdropDetail() {
               ))}
             </ul>
           )}
-        </GlowCard>
-      </div>
+      </GlowCard>
 
       {/* Raw criteria (fallback) */}
       {!guide.description && Object.keys(criteria).filter((k) => !['guide', 'tags'].includes(k)).length > 0 && (
@@ -706,9 +832,18 @@ function getMockDetail(id) {
     protocol: id.split('-')[0],
     chain: chainMap[id] || 'ethereum',
     status: 'active',
+    phase: 'confirmed',
     snapshot_date: null,
     claim_start: null,
     claim_end: null,
+    tgeDate: null,
+    vestingEndDate: null,
+    estimatedValue: '$50-$200',
+    walletIds: ['0x1234567890abcdef1234567890abcdef12345678', '0xabcdef1234567890abcdef1234567890abcdef12'],
+    walletStatus: {
+      '0x1234567890abcdef1234567890abcdef12345678': 'in_progress',
+      '0xabcdef1234567890abcdef1234567890abcdef12': 'pending',
+    },
     links: { site: 'https://example.com', docs: 'https://docs.example.com' },
   }
   if (id === 'nado' || id === 'konnex-testnet') {
@@ -744,9 +879,19 @@ function getMockDetail(id) {
         status_label: 'EM ANDAMENTO',
       },
     }
+    base.tgeDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString()
+    base.vestingEndDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 180).toISOString()
     base.links = { portal: 'https://app.example.com', twitter: 'https://x.com/projeto', docs: 'https://docs.example.com' }
   } else {
     base.criteria = { minTx: '5+ transações', interação: 'Bridge ou swap na rede' }
   }
   return base
+}
+
+function getMockWallets() {
+  return [
+    { address: '0x1234567890abcdef1234567890abcdef12345678', label: 'Main Wallet' },
+    { address: '0xabcdef1234567890abcdef1234567890abcdef12', label: 'Cold Storage' },
+    { address: '0x9876543210fedcba9876543210fedcba98765432', label: 'Wallet 3' },
+  ]
 }

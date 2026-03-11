@@ -48,21 +48,56 @@ const CustomTooltip = ({ active, payload, label }) => {
 // ── Summary Card ──────────────────────────────────────────────────
 function StatCard({ label, value, sub, icon: Icon, variant = 'default' }) {
   const variants = {
-    default: { bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.08)', iconBg: 'rgba(59,91,255,0.10)', iconColor: '#7a9aff' },
-    green: { bg: 'rgba(52,211,153,0.06)', border: 'rgba(52,211,153,0.15)', iconBg: 'rgba(52,211,153,0.12)', iconColor: '#34d399' },
-    red: { bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.15)', iconBg: 'rgba(248,113,113,0.12)', iconColor: '#f87171' },
-    blue: { bg: 'rgba(59,91,255,0.06)', border: 'rgba(59,91,255,0.15)', iconBg: 'rgba(59,91,255,0.12)', iconColor: '#7a9aff' },
-    amber: { bg: 'rgba(251,191,36,0.06)', border: 'rgba(251,191,36,0.15)', iconBg: 'rgba(251,191,36,0.12)', iconColor: '#fbbf24' },
+    default: {
+      bg: 'var(--surface)',
+      border: 'rgba(255,255,255,0.06)',
+      iconBg: 'rgba(255,255,255,0.03)',
+      iconColor: 'var(--text-secondary)',
+    },
+    green: {
+      bg: 'var(--surface)',
+      border: 'rgba(0,230,118,0.35)',
+      iconBg: 'rgba(0,230,118,0.08)',
+      iconColor: 'var(--success)',
+    },
+    red: {
+      bg: 'var(--surface)',
+      border: 'rgba(255,69,69,0.35)',
+      iconBg: 'rgba(255,69,69,0.08)',
+      iconColor: 'var(--danger)',
+    },
+    blue: {
+      bg: 'var(--surface)',
+      border: 'rgba(255,255,255,0.12)',
+      iconBg: 'rgba(255,255,255,0.05)',
+      iconColor: 'var(--text-primary)',
+    },
+    amber: {
+      bg: 'var(--surface)',
+      border: 'rgba(255,184,0,0.28)',
+      iconBg: 'rgba(255,184,0,0.06)',
+      iconColor: 'var(--warning)',
+    },
   }
   const v = variants[variant]
   return (
-    <div className="rounded-2xl p-5 transition-all duration-200 hover:scale-[1.02]"
-      style={{ background: v.bg, border: `1px solid ${v.border}` }}>
+    <div
+      className="rounded-2xl p-5 transition-all duration-150"
+      style={{ background: v.bg, border: `1px solid ${v.border}` }}
+    >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-white/50 uppercase tracking-wider">{label}</p>
-          <p className="text-2xl font-bold text-white mt-1">{value}</p>
-          {sub && <p className="text-xs text-white/40 mt-1">{sub}</p>}
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--text-secondary)' }}>
+            {label}
+          </p>
+          <p className="mt-1 text-[26px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {value}
+          </p>
+          {sub && (
+            <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+              {sub}
+            </p>
+          )}
         </div>
         <div className="p-3 rounded-xl" style={{ background: v.iconBg }}>
           <Icon className="w-5 h-5" style={{ color: v.iconColor }} />
@@ -80,6 +115,7 @@ export default function Dashboard() {
   const [airdrops, setAirdrops] = useState([])
   const [recentTx, setRecentTx] = useState([])
   const [loading, setLoading] = useState(true)
+  const [assistantExpanded, setAssistantExpanded] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -161,42 +197,108 @@ export default function Dashboard() {
     fee: { emoji: '🏷️', color: 'text-red-400' },
   }
 
+  const today = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+
   return (
     <div>
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
-        <p className="text-white/50">Visão geral do portfolio, P&L e próximos eventos</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Painel</h1>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Visão geral financeira, progresso dos airdrops e alertas.
+          </p>
+        </div>
+        <p className="text-xs uppercase tracking-[0.12em]" style={{ color: 'var(--text-muted)' }}>
+          {today}
+        </p>
       </div>
 
-      {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* ── Stat Cards (linha superior) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
-          label="Total Investido"
+          label="TOTAL INVESTIDO"
           value={fmtUsd(invested)}
           icon={DollarSign}
           variant="blue"
         />
         <StatCard
-          label="Total Claimado"
+          label="TOTAL RECLAMADO"
           value={fmtUsd(claimed)}
           icon={TrendingUp}
           variant="green"
         />
         <StatCard
-          label="P&L Líquido"
+          label="RESULTADO (P&L)"
           value={fmtUsd(netPnl)}
-          sub={netPnl >= 0 ? '📈 Lucro' : '📉 Prejuízo'}
+          sub={netPnl >= 0 ? 'Lucro' : 'Prejuízo'}
           icon={netPnl >= 0 ? TrendingUp : TrendingDown}
           variant={netPnl >= 0 ? 'green' : 'red'}
         />
         <StatCard
-          label="Airdrops Ativos"
+          label="AIRDROPS ATIVOS"
           value={stats?.activeAirdrops || airdrops.length || 0}
-          sub={`${stats?.monitoredWallets || 0} wallets monitoradas`}
+          sub={`${stats?.monitoredWallets || 0} carteiras monitoradas`}
           icon={Zap}
           variant="amber"
         />
+      </div>
+
+      {/* ── Quick Actions compactas ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <Link to="/airdrops">
+          <GlowCard hoverGlow className="cursor-pointer flex items-center gap-3 py-4"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+            <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)' }}>
+              <Zap className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Verificar elegibilidade
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                Explore airdrops ativos e veja se sua carteira qualifica.
+              </p>
+            </div>
+          </GlowCard>
+        </Link>
+        <Link to="/transactions">
+          <GlowCard hoverGlow className="cursor-pointer flex items-center gap-3 py-4"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+            <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)' }}>
+              <ArrowLeftRight className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Registrar transação
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                Registre investimentos, claims, swaps e custos de gas.
+              </p>
+            </div>
+          </GlowCard>
+        </Link>
+        <Link to="/wallets">
+          <GlowCard hoverGlow className="cursor-pointer flex items-center gap-3 py-4"
+            style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+            <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)' }}>
+              <Wallet className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Gerenciar carteiras
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                Adicione ou pause carteiras monitoradas para o tracker.
+              </p>
+            </div>
+          </GlowCard>
+        </Link>
       </div>
 
       {/* ── Charts Row ── */}
@@ -225,8 +327,8 @@ export default function Dashboard() {
                 <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }} />
-                <Area type="monotone" dataKey="spent" name="Gasto" stroke="#f87171" fill="url(#colorSpent)" strokeWidth={2} />
-                <Area type="monotone" dataKey="claimed" name="Claimado" stroke="#34d399" fill="url(#colorClaimed)" strokeWidth={2} />
+                <Area type="monotone" dataKey="spent" name="Gasto" stroke="#FF4545" fill="url(#colorSpent)" strokeWidth={2} />
+                <Area type="monotone" dataKey="claimed" name="Claimado" stroke="#00E676" fill="url(#colorClaimed)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -272,9 +374,9 @@ export default function Dashboard() {
         </GlowCard>
       </div>
 
-      {/* ── Bottom Two Columns ── */}
+      {/* ── Próximos eventos + Alertas ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Upcoming Events */}
+        {/* Próximos Eventos */}
         <GlowCard>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -313,91 +415,39 @@ export default function Dashboard() {
           )}
         </GlowCard>
 
-        {/* Recent Transactions */}
+        {/* Alertas Recentes (Social Feed redesenhado) */}
         <GlowCard>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <ArrowLeftRight className="w-5 h-5 text-electric" />
-              Transações Recentes
+              Alertas Recentes
             </h2>
-            <Link to="/transactions" className="text-xs text-electric hover:underline flex items-center gap-1">
-              Ver todas <ChevronRight className="w-3 h-3" />
-            </Link>
           </div>
-          {recentTx.length > 0 ? (
-            <div className="space-y-2">
-              {recentTx.slice(0, 5).map((tx, i) => {
-                const info = TX_ICONS[tx.type] || TX_ICONS.invest
-                return (
-                  <div key={tx.id || i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">{info.emoji}</span>
-                      <div>
-                        <p className="text-sm text-white font-medium">
-                          {tx.type === 'swap'
-                            ? `${tx.from_token || '?'} → ${tx.token}`
-                            : tx.token
-                          }
-                        </p>
-                        <p className="text-xs text-white/40">
-                          {tx.airdrop_name || tx.chain || '—'} · {fmtDate(tx.tx_date)}
-                        </p>
-                      </div>
-                    </div>
-                    <span className={`text-sm font-medium ${info.color}`}>
-                      {tx.value_usd ? fmtUsd(tx.value_usd) : `${tx.amount || 0} ${tx.token}`}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-white/30 text-sm">Nenhuma transação registrada.</p>
-              <Link to="/transactions" className="text-electric text-xs hover:underline mt-2 inline-block">
-                Registrar primeira transação
-              </Link>
-            </div>
-          )}
+          <div className="max-h-[420px] overflow-y-auto">
+            <SocialFeed />
+          </div>
         </GlowCard>
       </div>
 
-      {/* ── Quick Actions ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Link to="/airdrops">
-          <GlowCard hoverGlow className="cursor-pointer">
-            <h3 className="font-semibold text-white mb-2">🎯 Verificar Eligibilidade</h3>
-            <p className="text-sm text-white/60">
-              Veja airdrops ativos e verifique sua carteira
-            </p>
-          </GlowCard>
-        </Link>
-        <Link to="/transactions">
-          <GlowCard hoverGlow className="cursor-pointer">
-            <h3 className="font-semibold text-white mb-2">💰 Registrar Transação</h3>
-            <p className="text-sm text-white/60">
-              Registre investimentos, claims e swaps
-            </p>
-          </GlowCard>
-        </Link>
-        <Link to="/wallets">
-          <GlowCard hoverGlow className="cursor-pointer">
-            <h3 className="font-semibold text-white mb-2">👛 Gerenciar Wallets</h3>
-            <p className="text-sm text-white/60">
-              Adicione e monitore suas carteiras
-            </p>
-          </GlowCard>
-        </Link>
-      </div>
-
-      {/* ── AI Bot + Social Feed ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div style={{ height: '500px' }}>
-          {wallet && <AiBotChat wallet={wallet} />}
-        </div>
-        <div style={{ height: '500px' }}>
-          <SocialFeed />
-        </div>
+      {/* ── Assistente de IA (compacto e colapsável) ── */}
+      <div className="mb-4">
+        <GlowCard className="border" style={{ borderColor: 'var(--border-accent)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <span>🤖</span> Assistente de IA
+            </h2>
+            <button
+              type="button"
+              onClick={() => setAssistantExpanded((v) => !v)}
+              className="text-xs btn-secondary px-3 py-1 rounded-lg"
+            >
+              {assistantExpanded ? 'Recolher' : 'Expandir'}
+            </button>
+          </div>
+          <div className={assistantExpanded ? 'h-[420px]' : 'h-[88px]'}>
+            {wallet && <AiBotChat wallet={wallet} collapsed={!assistantExpanded} />}
+          </div>
+        </GlowCard>
       </div>
     </div>
   )
