@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Zap } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { env } from '../lib/env.js';
 
 export default function Login() {
   const { login } = useAuth();
@@ -98,7 +99,8 @@ export default function Login() {
     }
   };
 
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const clientId = env.GOOGLE_CLIENT_ID;
+  const appName = env.APP_NAME || 'ClaimOS';
 
   const handleDevRequestOtp = async (e) => {
     e.preventDefault();
@@ -131,7 +133,7 @@ export default function Login() {
             <div className="p-3 rounded-xl bg-electric/10 border border-electric/20 mb-4">
               <Zap className="w-10 h-10 text-electric" />
             </div>
-            <h1 className="text-2xl font-bold text-white">ClaimOS</h1>
+            <h1 className="text-2xl font-bold text-white">{appName}</h1>
             <p className="text-white/50 text-sm mt-1">Conecte-se com Google + código OTP</p>
           </div>
 
@@ -153,7 +155,7 @@ export default function Login() {
               ) : (
                 <form onSubmit={handleDevRequestOtp} className="space-y-3">
                   <p className="text-amber-400/90 text-sm text-center">
-                    Configure VITE_GOOGLE_CLIENT_ID no .env para login com Google. Modo dev:
+                    Configure VITE_GOOGLE_CLIENT_ID no .env para login com Google. Modo dev (sem Google):
                   </p>
                   <input
                     type="email"

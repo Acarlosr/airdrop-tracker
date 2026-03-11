@@ -1,7 +1,12 @@
 import axios from 'axios'
+import { env } from '../lib/env.js'
+
+const baseURL = env.API_URL
+  ? `${String(env.API_URL).replace(/\/$/, '')}/api`
+  : '/api'
 
 const instance = axios.create({
-  baseURL: '/api',
+  baseURL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

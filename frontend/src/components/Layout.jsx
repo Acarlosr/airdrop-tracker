@@ -18,6 +18,7 @@ import {
   BookOpen,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { env } from '../lib/env.js'
 import Login from '../pages/Login'
 
 export default function Layout({ children }) {
@@ -72,7 +73,7 @@ export default function Layout({ children }) {
             <Zap className="w-5 h-5" style={{ color: 'var(--accent)' }} />
           </div>
           <span className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            ClaimOS
+            {env.APP_NAME}
           </span>
         </div>
 
