@@ -5,6 +5,9 @@ import { GlowCard } from '../components/GlowCard'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/Tabs'
 import api from '../services/api'
 import { useNetworks, findNetworkForAirdrop } from '../context/NetworksContext'
+import AddNetworkModal from '../components/AddNetworkModal'
+import { useAuth } from '../context/AuthContext'
+import MoneyLegoPlanner from '../components/MoneyLegoPlanner'
 
 // ── Helpers ───────────────────────────────────────────────────────
 const TESTNET_KEYWORDS = ['sepolia', 'goerli', 'testnet', 'test-', '-test']
@@ -108,7 +111,7 @@ const EMPTY_FORM = {
   tgeDate: '',
   vestingEndDate: '',
   estimatedValue: '',
-  website: '', twitter: '', discord: '',
+  website: '', twitter: '', discord: '', docs: '',
   description: '', farm_value: '', funding: '',
   potential: '', cost: '',
   networkId: '',
@@ -126,10 +129,10 @@ function Chip({ emoji, label, active, onClick }) {
       type="button"
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border transition-all ${active
-          ? 'border-[rgba(59,91,255,0.45)] text-[#7a9aff]'
+          ? 'border-[rgba(240, 160, 32,0.45)] text-[#f5c15e]'
           : 'border-[rgba(255,255,255,0.08)] text-white/50 hover:border-[rgba(255,255,255,0.18)] hover:text-white/80'
         }`}
-      style={active ? { background: 'rgba(59,91,255,0.13)' } : { background: 'rgba(255,255,255,0.03)' }}
+      style={active ? { background: 'rgba(240, 160, 32,0.13)' } : { background: 'rgba(255,255,255,0.03)' }}
     >
       {active && <Check className="w-2.5 h-2.5" />}
       <span>{emoji}</span>
@@ -138,10 +141,14 @@ function Chip({ emoji, label, active, onClick }) {
   )
 }
 
+// Valor sentinela do <select>: abre o cadastro rápido de rede.
+const ADD_NETWORK_OPTION = '__add_network__'
+
 // ── Add Airdrop Modal ─────────────────────────────────────────────
 function AddAirdropModal({ onClose, onAdd }) {
-  const { networks } = useNetworks()
+  const { networks, addNetwork } = useNetworks()
   const activeNetworks = networks.filter((n) => n.isActive)
+  const [showAddNetwork, setShowAddNetwork] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
@@ -187,6 +194,10 @@ function AddAirdropModal({ onClose, onAdd }) {
 
   const handleNetworkChange = (e) => {
     const networkId = e.target.value
+    if (networkId === ADD_NETWORK_OPTION) {
+      setShowAddNetwork(true)
+      return
+    }
     setForm((p) => {
       const next = { ...p, networkId }
       if (networkId && !p.chain) {
@@ -195,6 +206,17 @@ function AddAirdropModal({ onClose, onAdd }) {
       }
       return next
     })
+  }
+
+  // Cria a rede e já a deixa selecionada, sem perder nada do formulário do airdrop.
+  const handleNetworkCreated = (data) => {
+    const id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `net-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    addNetwork({ ...data, id })
+    setForm((p) => ({ ...p, networkId: id, chain: p.chain || data.name.toLowerCase() }))
+    setShowAddNetwork(false)
   }
 
   const toggleSet = (field, id) => {
@@ -278,6 +300,7 @@ function AddAirdropModal({ onClose, onAdd }) {
         website: form.website || null,
         twitter: form.twitter || null,
         discord: form.discord || null,
+        docs: form.docs || null,
       },
     }
 
@@ -290,8 +313,12 @@ function AddAirdropModal({ onClose, onAdd }) {
       if (err.response?.status === 409) {
         setFormError('Já existe um airdrop com esse nome.')
       } else if (err.response?.status >= 500) {
-        onAdd({ ...payload, id: `${id}-${Date.now()}` })
-        onClose()
+        // Antes isto adicionava o airdrop só na tela (fake success) e fechava o
+        // modal — o usuário achava que salvou, mas o servidor recusou e o item
+        // sumia ao navegar. Melhor mostrar o erro e deixar o formulário aberto.
+        setFormError('O servidor não conseguiu salvar. Confira se o backend está no ar e se as migrações do banco foram aplicadas.')
+      } else if (!err.response) {
+        setFormError('Não foi possível falar com o servidor. Ele está rodando?')
       } else {
         setFormError(err.response?.data?.error || 'Erro ao criar airdrop.')
       }
@@ -312,7 +339,7 @@ function AddAirdropModal({ onClose, onAdd }) {
 
       <div
         className="relative w-full max-w-2xl max-h-[92vh] flex flex-col rounded-2xl border overflow-hidden"
-        style={{ background: 'var(--surface-card)', borderColor: 'rgba(59,91,255,0.20)' }}
+        style={{ background: 'var(--surface-card)', borderColor: 'rgba(240, 160, 32,0.20)' }}
       >
         {/* Header */}
         <div
@@ -320,8 +347,8 @@ function AddAirdropModal({ onClose, onAdd }) {
           style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl" style={{ background: 'rgba(59,91,255,0.15)', border: '1px solid rgba(59,91,255,0.30)' }}>
-              <Plus className="w-4 h-4 text-[#7a9aff]" />
+            <div className="p-2 rounded-xl" style={{ background: 'rgba(240, 160, 32,0.15)', border: '1px solid rgba(240, 160, 32,0.30)' }}>
+              <Plus className="w-4 h-4 text-[#f5c15e]" />
             </div>
             <h2 className="text-lg font-bold text-white">Novo Airdrop</h2>
           </div>
@@ -338,10 +365,10 @@ function AddAirdropModal({ onClose, onAdd }) {
               type="button"
               onClick={() => setSection(t.id)}
               className={`text-xs px-3 py-1.5 rounded-lg transition-all ${section === t.id
-                  ? 'text-[#7a9aff] font-semibold'
+                  ? 'text-[#f5c15e] font-semibold'
                   : 'text-white/40 hover:text-white/70'
                 }`}
-              style={section === t.id ? { background: 'rgba(59,91,255,0.12)', border: '1px solid rgba(59,91,255,0.20)' } : { border: '1px solid transparent' }}
+              style={section === t.id ? { background: 'rgba(240, 160, 32,0.12)', border: '1px solid rgba(240, 160, 32,0.20)' } : { border: '1px solid transparent' }}
             >
               {t.label}
             </button>
@@ -389,9 +416,10 @@ function AddAirdropModal({ onClose, onAdd }) {
                         {n.name} ({n.env === 'mainnet' ? 'Mainnet' : 'Testnet'})
                       </option>
                     ))}
+                    <option value={ADD_NETWORK_OPTION}>+ Nova rede personalizada…</option>
                   </select>
                   <p className="text-[11px] text-white/40 mt-1">
-                    Redes vêm de Configurações. Hoje em dia há muitas redes — adicione as que você usa.
+                    Escolha &quot;Nova rede personalizada&quot; para cadastrar sem sair daqui.
                   </p>
                   <Link
                     to="/settings"
@@ -400,7 +428,7 @@ function AddAirdropModal({ onClose, onAdd }) {
                     style={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'rgba(255,140,0,0.08)' }}
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Adicionar nova rede
+                    Gerenciar redes
                     <ExternalLink className="w-3 h-3" />
                   </Link>
                 </div>
@@ -475,8 +503,8 @@ function AddAirdropModal({ onClose, onAdd }) {
                   {(form.customCategories || []).map((label, i) => (
                     <span
                       key={`custom-${i}`}
-                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full border border-[rgba(59,91,255,0.45)] text-[#7a9aff]"
-                      style={{ background: 'rgba(59,91,255,0.13)' }}
+                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-full border border-[rgba(240, 160, 32,0.45)] text-[#f5c15e]"
+                      style={{ background: 'rgba(240, 160, 32,0.13)' }}
                     >
                       {label}
                       <button type="button" onClick={() => setForm((p) => ({ ...p, customCategories: p.customCategories.filter((_, j) => j !== i) }))} className="hover:bg-white/20 rounded p-0.5">
@@ -540,6 +568,7 @@ function AddAirdropModal({ onClose, onAdd }) {
                   <input name="website" value={form.website} onChange={handle} placeholder="Website (https://...)" className="input-field" type="url" />
                   <input name="twitter" value={form.twitter} onChange={handle} placeholder="Twitter / X (https://x.com/...)" className="input-field" type="url" />
                   <input name="discord" value={form.discord} onChange={handle} placeholder="Discord (https://discord.gg/...)" className="input-field" type="url" />
+                  <input name="docs" value={form.docs} onChange={handle} placeholder="Docs (https://docs...)" className="input-field" type="url" />
                 </div>
               </div>
             </div>
@@ -636,7 +665,7 @@ function AddAirdropModal({ onClose, onAdd }) {
                                 type="checkbox"
                                 checked={selected}
                                 onChange={() => toggleWallet(walletId)}
-                                className="mt-1 accent-[#3b5bff]"
+                                className="mt-1 accent-[#f0a020]"
                               />
                               <div className="min-w-0">
                                 <p className="text-sm text-white">{wallet.label || 'Carteira sem nome'}</p>
@@ -734,6 +763,14 @@ function AddAirdropModal({ onClose, onAdd }) {
           </button>
         </div>
       </div>
+
+      {showAddNetwork && (
+        <AddNetworkModal
+          existingNetworks={networks}
+          onClose={() => setShowAddNetwork(false)}
+          onCreated={handleNetworkCreated}
+        />
+      )}
     </div>
   )
 }
@@ -741,17 +778,21 @@ function AddAirdropModal({ onClose, onAdd }) {
 // ── Main Page ─────────────────────────────────────────────────────
 export default function Airdrops() {
   const { networks } = useNetworks()
+  const { isAuthenticated } = useAuth()
   const [tab, setTab] = useState('todos')
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
+  // Usuário sem cadastro só pode ter 1 airdrop; logado pode ter vários
+  const canAddAirdrop = isAuthenticated || list.length < 1
+
   const fetchAirdrops = useCallback(() => {
     setLoading(true)
     api.get('/airdrops', { params: { status: 'active', limit: 100 } })
       .then((res) => setList(res.data?.data ?? []))
-      .catch(() => { setError('Não foi possível carregar.'); setList(getMockAirdrops()) })
+      .catch(() => { setError('Não foi possível carregar os airdrops.'); setList([]) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -771,6 +812,14 @@ export default function Airdrops() {
     setList((prev) => prev.filter((x) => x.id !== id))
   }
 
+  const openNewAirdropModal = () => {
+    if (!canAddAirdrop) {
+      window.alert('Você só pode cadastrar um airdrop sem estar logado. Faça login para adicionar mais.')
+      return
+    }
+    setShowModal(true)
+  }
+
   return (
     <div>
       {/* Header */}
@@ -781,32 +830,49 @@ export default function Airdrops() {
             Separe por rede e clique para ver detalhes completos.
           </p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary">
-          <Plus className="w-4 h-4" /> Novo Airdrop
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={openNewAirdropModal}
+            className={`btn ${canAddAirdrop ? 'btn-primary' : 'opacity-60 cursor-not-allowed'}`}
+            style={!canAddAirdrop ? { background: 'var(--muted)', color: 'var(--muted-foreground)' } : undefined}
+            title={!canAddAirdrop ? 'Faça login para adicionar mais airdrops' : undefined}
+          >
+            <Plus className="w-4 h-4" /> Novo Airdrop
+          </button>
+          {!isAuthenticated && list.length >= 1 && (
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+              Limite de 1 airdrop. Entre para adicionar mais.
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab} className="mb-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-xs">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-xl">
           <TabsTrigger value="todos">Todos</TabsTrigger>
           <TabsTrigger value="mainnet">Mainnet</TabsTrigger>
           <TabsTrigger value="testnet">Testnet</TabsTrigger>
+          <TabsTrigger value="money-lego">Money Lego</TabsTrigger>
         </TabsList>
       </Tabs>
 
+      {tab === 'money-lego' ? (
+        <MoneyLegoPlanner />
+      ) : (
+        <>
       {error && <p className="text-amber-400/80 text-sm mb-4">{error}</p>}
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#3b5bff] border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#f0a020] border-t-transparent" />
         </div>
       ) : filtered.length === 0 ? (
         <GlowCard>
           <div className="text-center py-10">
             <Zap className="w-10 h-10 text-white/15 mx-auto mb-3" />
             <p className="text-white/40 text-sm">Nenhum airdrop encontrado.</p>
-            <button onClick={() => setShowModal(true)} className="btn btn-primary mt-4 text-sm">
+            <button onClick={openNewAirdropModal} className="btn btn-primary mt-4 text-sm">
               <Plus className="w-3.5 h-3.5" /> Adicionar primeiro
             </button>
           </div>
@@ -838,7 +904,7 @@ export default function Airdrops() {
                         {a.protocol || '—'} · {a.chain || net?.name || '—'}
                       </p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-[#3b5bff] shrink-0 mt-0.5" />
+                    <ChevronRight className="w-4 h-4 text-[#f0a020] shrink-0 mt-0.5" />
                   </div>
 
                   {/* Category chips */}
@@ -848,7 +914,7 @@ export default function Airdrops() {
                         const cat = CATEGORIES.find((c) => c.id === catId)
                         return cat ? (
                           <span key={catId} className="text-xs px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(59,91,255,0.10)', color: '#7a9aff', border: '1px solid rgba(59,91,255,0.22)' }}>
+                            style={{ background: 'rgba(240, 160, 32,0.10)', color: '#f5c15e', border: '1px solid rgba(240, 160, 32,0.22)' }}>
                             {cat.emoji} {cat.label}
                           </span>
                         ) : null
@@ -862,7 +928,7 @@ export default function Airdrops() {
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
                     <span className={`text-xs px-2 py-0.5 rounded-full border ${isTestnet(a.chain)
                         ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                        : 'bg-[rgba(59,91,255,0.10)] text-[#7a9aff] border-[rgba(59,91,255,0.22)]'
+                        : 'bg-[rgba(240, 160, 32,0.10)] text-[#f5c15e] border-[rgba(240, 160, 32,0.22)]'
                       }`}>
                       {isTestnet(a.chain) ? '🧪 Testnet' : '🌐 Mainnet'}
                     </span>
@@ -907,6 +973,8 @@ export default function Airdrops() {
             )
           })}
         </div>
+      )}
+        </>
       )}
 
       {showModal && (

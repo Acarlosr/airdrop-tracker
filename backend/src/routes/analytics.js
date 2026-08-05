@@ -12,25 +12,25 @@ export default async function analyticsRoutes(fastify, options) {
       const airdropsResult = await query(
         "SELECT COUNT(*) as count FROM airdrops WHERE status = 'active'"
       );
-      stats.activeAirdrops = parseInt(airdropsResult.rows[0].count);
+      stats.activeAirdrops = parseInt(airdropsResult.rows[0]?.count ?? "0");
       
       // Monitored wallets count
       const walletsResult = await query(
         'SELECT COUNT(*) as count FROM wallets WHERE watch_enabled = true'
       );
-      stats.monitoredWallets = parseInt(walletsResult.rows[0].count);
+      stats.monitoredWallets = parseInt(walletsResult.rows[0]?.count ?? "0");
       
       // Total eligible checks
       const eligibleResult = await query(
         'SELECT COUNT(*) as count FROM eligibility_checks WHERE is_eligible = true'
       );
-      stats.eligibleChecks = parseInt(eligibleResult.rows[0].count);
+      stats.eligibleChecks = parseInt(eligibleResult.rows[0]?.count ?? "0");
       
       // Pending alerts
       const alertsResult = await query(
         'SELECT COUNT(*) as count FROM alerts WHERE notified = false'
       );
-      stats.pendingAlerts = parseInt(alertsResult.rows[0].count);
+      stats.pendingAlerts = parseInt(alertsResult.rows[0]?.count ?? "0");
       
       // Recent activity (last 7 days)
       const activityResult = await query(
@@ -174,7 +174,7 @@ export default async function analyticsRoutes(fastify, options) {
           priority,
           COUNT(*) as count
         FROM alerts
-        WHERE created_at >= NOW() - INTERVAL '${parseInt(days)} days'
+        WHERE created_at >= NOW() - INTERVAL '30 days'
         GROUP BY DATE(created_at), priority
         
         UNION ALL
@@ -185,7 +185,7 @@ export default async function analyticsRoutes(fastify, options) {
           CASE WHEN is_eligible THEN 'eligible' ELSE 'not_eligible' END as priority,
           COUNT(*) as count
         FROM eligibility_checks
-        WHERE checked_at >= NOW() - INTERVAL '${parseInt(days)} days'
+        WHERE checked_at >= NOW() - INTERVAL '30 days'
         GROUP BY DATE(checked_at), is_eligible
         
         ORDER BY date DESC, type`,

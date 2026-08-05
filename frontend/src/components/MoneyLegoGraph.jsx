@@ -34,7 +34,7 @@ export function MoneyLegoGraph({ graph, onSelectNode = null }) {
         },
         position: { x: index * 250, y: index % 2 === 0 ? 0 : 100 },
         style: {
-          background: isCritical ? '#ef4444' : '#3b82f6',
+          background: isCritical ? '#ef4444' : '#f0a020',
           color: '#fff',
           padding: '15px',
           borderRadius: '8px',

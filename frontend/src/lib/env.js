@@ -7,6 +7,7 @@ export const env = {
   APP_NAME: (import.meta.env.VITE_APP_NAME ?? 'ClaimOS'),
   API_URL: (import.meta.env.VITE_API_URL ?? ''),
   GOOGLE_CLIENT_ID: (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''),
+  DEMO_MODE: import.meta.env.VITE_DEMO_MODE === 'true',
   SUPABASE_URL: (import.meta.env.VITE_SUPABASE_URL ?? ''),
   SUPABASE_ANON_KEY: (import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''),
 };

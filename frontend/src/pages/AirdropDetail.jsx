@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import {
   ArrowLeft, Calendar, Link as LinkIcon, ExternalLink, DollarSign,
   BookOpen, ListOrdered, Lightbulb, HelpCircle, Zap, Tag, Edit3, Wallet,
-  Save, X, Check,
+  Save, X, Check, ArrowLeftRight, Plus, Trash2, Image as ImageIcon, Upload,
 } from 'lucide-react'
 import { GlowCard } from '../components/GlowCard'
 import api from '../services/api'
@@ -175,6 +175,291 @@ function TagsPanel({ activeTags = [], onChange }) {
   )
 }
 
+// ── Check-in Panel ────────────────────────────────────────────────
+function CheckInPanel({ airdropId }) {
+  const [streak, setStreak] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    api.getStreak(airdropId)
+      .then((res) => { if (active) setStreak(res.data) })
+      .catch(() => { if (active) setFailed(true) })
+    return () => { active = false }
+  }, [airdropId])
+
+  const handleCheckIn = async () => {
+    setSaving(true)
+    try {
+      await api.createInteraction({ airdrop_id: airdropId, kind: 'check-in' })
+      const res = await api.getStreak(airdropId)
+      setStreak(res.data)
+      setFailed(false)
+    } catch {
+      setFailed(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (failed && !streak) return null
+
+  const done = streak?.checkedInToday
+  return (
+    <div className="flex items-center gap-3">
+      {streak && (
+        <span className="inline-flex items-center gap-1.5 text-sm text-white/70">
+          <Zap className="w-4 h-4 text-electric" />
+          Streak: <span className="text-white font-semibold">{streak.streak}d</span>
+        </span>
+      )}
+      <button
+        onClick={handleCheckIn}
+        disabled={saving || done}
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          done
+            ? 'bg-green-500/10 text-green-400 border border-green-500/20 cursor-default'
+            : 'bg-electric/10 text-electric border border-electric/30 hover:bg-electric/20'
+        }`}
+      >
+        <Check className="w-4 h-4" />
+        {done ? 'Check-in feito hoje' : saving ? 'Salvando…' : 'Check-in de hoje'}
+      </button>
+      {failed && streak && (
+        <span className="text-xs text-amber-400/80">Falha ao salvar — tente de novo</span>
+      )}
+    </div>
+  )
+}
+
+// ── Transactions / Interactions Panel ─────────────────────────────
+const INTERACTION_KIND_OPTIONS = [
+  { value: 'check-in', label: 'Check-in' },
+  { value: 'register', label: 'Cadastro' },
+  { value: 'mint', label: 'Mint' },
+  { value: 'swap', label: 'Swap' },
+  { value: 'bridge', label: 'Bridge' },
+  { value: 'stake', label: 'Stake' },
+  { value: 'claim', label: 'Claim' },
+  { value: 'referral', label: 'Indicação' },
+  { value: 'ai-task', label: 'Tarefa de IA' },
+  { value: 'transfer', label: 'Transferência' },
+  { value: 'social', label: 'Social' },
+  { value: 'outro', label: 'Outro' },
+]
+
+function TransactionsPanel({ airdropId }) {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [form, setForm] = useState({
+    kind: 'swap',
+    occurred_on: new Date().toISOString().slice(0, 10),
+    network: '',
+    tx_hash: '',
+    gas_cost: '',
+    note: '',
+  })
+
+  const load = () => {
+    setLoading(true)
+    api.getInteractions(airdropId)
+      .then((res) => setItems(res.data?.interactions ?? []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [airdropId])
+
+  const handle = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setFormError('')
+    setSaving(true)
+    try {
+      await api.createInteraction({
+        airdrop_id: airdropId,
+        kind: form.kind,
+        occurred_on: form.occurred_on || undefined,
+        network: form.network || null,
+        tx_hash: form.tx_hash || null,
+        gas_cost: form.gas_cost ? Number(form.gas_cost) : null,
+        note: form.note || null,
+      })
+      setForm((p) => ({ ...p, network: '', tx_hash: '', gas_cost: '', note: '' }))
+      load()
+    } catch (err) {
+      setFormError(err.response?.data?.error || 'Não consegui salvar. Tente de novo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <GlowCard>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <ArrowLeftRight className="w-5 h-5 text-electric" />
+          Minhas transações / interações
+          {items.length > 0 && (
+            <span className="ml-1 text-xs bg-electric text-[#0f1419] rounded-full px-2 py-0.5 font-bold">
+              {items.length}
+            </span>
+          )}
+        </h2>
+        <button onClick={() => setOpen((v) => !v)} className="text-xs text-electric hover:underline inline-flex items-center gap-1">
+          <Plus className="w-3.5 h-3.5" /> {open ? 'Fechar' : 'Adicionar'}
+        </button>
+      </div>
+
+      {open && (
+        <form onSubmit={handleSubmit} className="mb-4 p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-3">
+          {formError && <p className="text-xs text-red-400">{formError}</p>}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <select name="kind" value={form.kind} onChange={handle} className="input-field text-sm">
+              {INTERACTION_KIND_OPTIONS.map((k) => (
+                <option key={k.value} value={k.value}>{k.label}</option>
+              ))}
+            </select>
+            <input type="date" name="occurred_on" value={form.occurred_on} onChange={handle} className="input-field text-sm" />
+            <input name="network" value={form.network} onChange={handle} placeholder="Rede (ex: base)" className="input-field text-sm" />
+            <input name="gas_cost" value={form.gas_cost} onChange={handle} placeholder="Custo de gas (USD)" type="number" step="0.01" className="input-field text-sm" />
+          </div>
+          <input name="tx_hash" value={form.tx_hash} onChange={handle} placeholder="Hash da transação (opcional)" className="input-field text-sm font-mono" />
+          <textarea name="note" value={form.note} onChange={handle} placeholder="Nota (o que você fez)" rows={2} className="input-field text-sm resize-none" />
+          <button type="submit" disabled={saving} className="btn btn-primary text-xs px-4 py-2">
+            {saving ? 'Salvando...' : 'Registrar'}
+          </button>
+        </form>
+      )}
+
+      {loading ? (
+        <p className="text-white/40 text-sm">Carregando...</p>
+      ) : items.length === 0 ? (
+        <p className="text-white/40 text-sm">Nenhuma transação registrada ainda.</p>
+      ) : (
+        <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+          {items.map((it) => {
+            const kindLabel = INTERACTION_KIND_OPTIONS.find((k) => k.value === it.kind)?.label || it.kind
+            return (
+              <div key={it.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-sm">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-white font-medium">{kindLabel}</span>
+                  <span className="text-white/40 text-xs">{formatDate(it.occurred_on)}</span>
+                </div>
+                <div className="flex flex-wrap gap-3 mt-1 text-xs text-white/50">
+                  {it.network && <span>Rede: {it.network}</span>}
+                  {it.gas_cost && <span>Gas: ${it.gas_cost}</span>}
+                  {it.tx_hash && <span className="font-mono truncate max-w-[220px]" title={it.tx_hash}>Tx: {it.tx_hash}</span>}
+                </div>
+                {it.note && <p className="text-white/70 text-xs mt-1.5">{it.note}</p>}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </GlowCard>
+  )
+}
+
+// ── Images / Screenshots Panel ────────────────────────────────────
+function ImagesPanel({ airdropId }) {
+  const [images, setImages] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+
+  const load = () => {
+    setLoading(true)
+    api.getAirdropImages(airdropId)
+      .then((res) => setImages(res.data?.images ?? []))
+      .catch(() => setImages([]))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [airdropId])
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError('')
+    setUploading(true)
+    try {
+      await api.uploadAirdropImage(airdropId, file)
+      load()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Falha ao enviar a imagem (PNG, JPG, WEBP ou GIF, até 8MB).')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDelete = async (imageId) => {
+    if (!window.confirm('Remover este print?')) return
+    setImages((prev) => prev.filter((i) => i.id !== imageId))
+    try {
+      await api.deleteAirdropImage(airdropId, imageId)
+    } catch {
+      load()
+    }
+  }
+
+  return (
+    <GlowCard>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <ImageIcon className="w-5 h-5 text-electric" />
+          Prints / imagens
+          {images.length > 0 && (
+            <span className="ml-1 text-xs bg-electric text-[#0f1419] rounded-full px-2 py-0.5 font-bold">
+              {images.length}
+            </span>
+          )}
+        </h2>
+        <label className="text-xs text-electric hover:underline inline-flex items-center gap-1 cursor-pointer">
+          <Upload className="w-3.5 h-3.5" /> {uploading ? 'Enviando...' : 'Enviar print'}
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={handleUpload} disabled={uploading} />
+        </label>
+      </div>
+
+      {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
+
+      {loading ? (
+        <p className="text-white/40 text-sm">Carregando...</p>
+      ) : images.length === 0 ? (
+        <p className="text-white/40 text-sm">Nenhum print adicionado ainda.</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {images.map((img) => (
+            <div key={img.id} className="relative group rounded-xl overflow-hidden border border-white/10 bg-white/[0.02]">
+              {img.url ? (
+                <a href={img.url} target="_blank" rel="noreferrer">
+                  <img src={img.url} alt={img.caption || 'Print'} className="w-full h-32 object-cover" />
+                </a>
+              ) : (
+                <div className="w-full h-32 flex items-center justify-center text-white/20 text-xs">Indisponível</div>
+              )}
+              <button
+                type="button"
+                onClick={() => handleDelete(img.id)}
+                className="absolute top-1.5 right-1.5 w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white/80 hover:text-red-400"
+                title="Remover"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </GlowCard>
+  )
+}
+
 // ── Edit Info Panel ───────────────────────────────────────────────
 function EditInfoPanel({ airdrop, onSave }) {
   const [open, setOpen] = useState(false)
@@ -195,6 +480,7 @@ function EditInfoPanel({ airdrop, onSave }) {
     website: airdrop?.links?.website || airdrop?.links?.portal || airdrop?.links?.site || '',
     twitter: airdrop?.links?.twitter || '',
     discord: airdrop?.links?.discord || '',
+    docs: airdrop?.links?.docs || '',
   })
 
   const handle = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }))
@@ -231,6 +517,7 @@ function EditInfoPanel({ airdrop, onSave }) {
         website: form.website || null,
         twitter: form.twitter || null,
         discord: form.discord || null,
+        docs: form.docs || null,
       },
     }
     onSave(updated)
@@ -367,6 +654,8 @@ function EditInfoPanel({ airdrop, onSave }) {
                   placeholder="Twitter (https://x.com/...)" className="input-field" type="url" />
                 <input name="discord" value={form.discord} onChange={handle}
                   placeholder="Discord (https://discord.gg/...)" className="input-field" type="url" />
+                <input name="docs" value={form.docs} onChange={handle}
+                  placeholder="Docs (https://docs...)" className="input-field" type="url" />
               </div>
             </div>
 
@@ -395,6 +684,7 @@ export default function AirdropDetail() {
   const [error, setError] = useState(null)
   const [tags, setTags] = useState([])
   const [wallets, setWallets] = useState([])
+  const [saveError, setSaveError] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -426,8 +716,7 @@ export default function AirdropDetail() {
       })
       .catch(() => {
         setError('Não foi possível carregar do servidor. Exibindo dados locais.')
-        const mock = getMockDetail(id)
-        setAirdrop(mock)
+        setAirdrop(null)
         const localTags = JSON.parse(localStorage.getItem(`airdrop-tags-${id}`) || '[]')
         setTags(localTags)
       })
@@ -444,17 +733,21 @@ export default function AirdropDetail() {
   }
 
   const handleInfoSave = async (updates) => {
-    // Merge updates into local state
+    const previous = airdrop
+    // Atualização otimista: aplica na tela antes da resposta do servidor.
     setAirdrop((prev) => ({
       ...prev,
       criteria: { ...(prev?.criteria || {}), ...updates.criteria },
       links: { ...(prev?.links || {}), ...updates.links },
     }))
-    // Try to persist to backend
     try {
       await api.updateAirdrop(id, updates)
+      setSaveError(null)
     } catch {
-      // silent fail — data is saved locally in state
+      // Antes isto falhava em silêncio: a tela mostrava a edição, mas nada
+      // era salvo — ao recarregar, tudo sumia. Agora desfaz e avisa.
+      setAirdrop(previous)
+      setSaveError('Não foi possível salvar. Confira se o backend está no ar e tente de novo.')
     }
   }
 
@@ -543,6 +836,9 @@ export default function AirdropDetail() {
               Protocolo: {a.protocol || '—'} · Rede: {a.chain || '—'}
             </p>
           )}
+          <div className="mt-3">
+            <CheckInPanel airdropId={id} />
+          </div>
         </div>
         <EditInfoPanel airdrop={a} onSave={handleInfoSave} />
       </div>
@@ -552,9 +848,20 @@ export default function AirdropDetail() {
           {error}
         </p>
       )}
+      {saveError && (
+        <p className="text-red-400/90 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2">
+          {saveError}
+        </p>
+      )}
 
       {/* Tags */}
       <TagsPanel activeTags={tags} onChange={handleTagsChange} />
+
+      {/* Transações + Prints */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <TransactionsPanel airdropId={id} />
+        <ImagesPanel airdropId={id} />
+      </div>
 
       {/* Summary cards */}
       {(farmValue || estimatedValue || a.chain || funding) && (

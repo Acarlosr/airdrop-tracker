@@ -59,7 +59,7 @@ export default function AiRobot() {
                 <p className="text-white/50 mb-6">Monitoramento autônomo com OpenRouter LLM</p>
                 <div className="flex justify-center py-16">
                     <div className="animate-spin rounded-full h-10 w-10 border-2 border-t-transparent"
-                        style={{ borderColor: '#3b5bff', borderTopColor: 'transparent' }} />
+                        style={{ borderColor: '#f0a020', borderTopColor: 'transparent' }} />
                 </div>
             </div>
         )
@@ -107,9 +107,9 @@ export default function AiRobot() {
                         <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                             className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
                             style={activeTab === tab.id ? {
-                                background: 'rgba(59,91,255,0.12)',
-                                color: '#7a9aff',
-                                border: '1px solid rgba(59,91,255,0.22)',
+                                background: 'rgba(240, 160, 32,0.12)',
+                                color: '#f5c15e',
+                                border: '1px solid rgba(240, 160, 32,0.22)',
                             } : {
                                 background: 'transparent',
                                 color: 'rgba(255,255,255,0.4)',

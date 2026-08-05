@@ -1,8 +1,252 @@
 import { useState, useEffect } from 'react'
-import { Bell, Cpu, Database, Globe, Shield, RefreshCw, Plus, Trash2, Edit3, Check, X } from 'lucide-react'
+import { Bell, Cpu, Database, Globe, Shield, RefreshCw, Plus, Trash2, Edit3, Check, X, Bot, Send, ExternalLink } from 'lucide-react'
 import { GlowCard } from '../components/GlowCard'
 import api from '../services/api'
 import { useNetworks } from '../context/NetworksContext'
+
+function BotSettingsCard() {
+  const [settings, setSettings] = useState(null)
+  const [models, setModels] = useState([])
+  const [modelsWarning, setModelsWarning] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [message, setMessage] = useState(null)
+  const [form, setForm] = useState({
+    telegramBotToken: '',
+    telegramChatId: '',
+    openrouterApiKey: '',
+    openrouterModel: '',
+    dailyBriefEnabled: false,
+  })
+
+  useEffect(() => {
+    let alive = true
+    async function load() {
+      setLoading(true)
+      try {
+        const [settingsRes, modelsRes] = await Promise.all([
+          api.getUserSettings(),
+          api.getFreeOpenRouterModels(),
+        ])
+        if (!alive) return
+        const s = settingsRes.data
+        setSettings(s)
+        setForm((prev) => ({
+          ...prev,
+          telegramChatId: s.telegramChatId || '',
+          openrouterModel: s.openrouterModel || 'z-ai/glm-4.5-air:free',
+          dailyBriefEnabled: !!s.dailyBriefEnabled,
+        }))
+        setModels(modelsRes.data?.models || [])
+        setModelsWarning(modelsRes.data?.warning || '')
+      } catch {
+        setMessage({ type: 'error', text: 'Não consegui carregar suas configurações. Confira se você está logado.' })
+      } finally {
+        if (alive) setLoading(false)
+      }
+    }
+    load()
+    return () => { alive = false }
+  }, [])
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setMessage(null)
+    try {
+      const payload = {
+        telegramChatId: form.telegramChatId,
+        openrouterModel: form.openrouterModel,
+        dailyBriefEnabled: form.dailyBriefEnabled,
+      }
+      // Só envia os segredos se o usuário digitou algo novo — campo vazio mantém o que já está salvo.
+      if (form.telegramBotToken.trim()) payload.telegramBotToken = form.telegramBotToken.trim()
+      if (form.openrouterApiKey.trim()) payload.openrouterApiKey = form.openrouterApiKey.trim()
+
+      const res = await api.saveUserSettings(payload)
+      setSettings(res.data)
+      setForm((prev) => ({ ...prev, telegramBotToken: '', openrouterApiKey: '' }))
+      setMessage({ type: 'success', text: 'Configurações salvas.' })
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Não consegui salvar. Tente de novo.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleTest = async () => {
+    setTesting(true)
+    setMessage(null)
+    try {
+      const res = await api.testTelegramSettings()
+      setMessage(
+        res.data?.sent
+          ? { type: 'success', text: 'Mensagem de teste enviada — confira seu Telegram.' }
+          : { type: 'error', text: 'Não consegui enviar. Confira token e chat_id.' },
+      )
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Falha ao testar o Telegram. Salve as credenciais primeiro.' })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  return (
+    <GlowCard className="lg:col-span-2">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="p-2 rounded-lg bg-electric/10 border border-electric/20">
+          <Bot className="w-5 h-5 text-electric" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-white">Meu robô (Telegram + IA)</h2>
+          <p className="text-xs text-white/50">Cada usuário configura o seu — token e chave ficam cifrados no banco.</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-electric border-t-transparent" />
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-5 text-sm">
+          {message && (
+            <div
+              className={`rounded-lg px-3 py-2 text-xs ${
+                message.type === 'success'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
+
+          {/* Telegram */}
+          <div className="rounded-xl border border-white/10 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">Telegram</h3>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full ${settings?.telegramConfigured ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-white/50'}`}>
+                {settings?.telegramConfigured ? 'Configurado' : 'Não configurado'}
+              </span>
+            </div>
+
+            <ol className="text-xs text-white/60 space-y-1 list-decimal list-inside">
+              <li>No Telegram, procure <strong className="text-white/80">@BotFather</strong> e mande <code className="text-electric">/newbot</code>. Escolha um nome e um username terminado em "bot".</li>
+              <li>Ele devolve um token — cole abaixo em "Token do bot".</li>
+              <li>Mande qualquer mensagem para o seu bot novo (ex: "oi").</li>
+              <li>
+                Abra no navegador <code className="text-electric">api.telegram.org/bot&lt;SEU_TOKEN&gt;/getUpdates</code>{' '}
+                (troque <code className="text-electric">&lt;SEU_TOKEN&gt;</code> pelo token do seu bot) e copie o número em{' '}
+                <code className="text-electric">"chat":&#123;"id": ...&#125;</code>.
+              </li>
+            </ol>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-white/60 mb-1">Token do bot</label>
+                <input
+                  type="password"
+                  className="input-field"
+                  value={form.telegramBotToken}
+                  onChange={(e) => setForm((p) => ({ ...p, telegramBotToken: e.target.value }))}
+                  placeholder={settings?.telegramTokenPreview || '123456:ABC-...'}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">Chat ID</label>
+                <input
+                  className="input-field"
+                  value={form.telegramChatId}
+                  onChange={(e) => setForm((p) => ({ ...p, telegramChatId: e.target.value }))}
+                  placeholder="Ex: 123456789"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-xs text-white/70">
+              <input
+                type="checkbox"
+                checked={form.dailyBriefEnabled}
+                onChange={(e) => setForm((p) => ({ ...p, dailyBriefEnabled: e.target.checked }))}
+                className="rounded border-white/30 bg-transparent"
+              />
+              Enviar resumo diário automaticamente (todo dia, no horário configurado no servidor)
+            </label>
+
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={testing}
+              className="btn btn-secondary flex items-center gap-2 text-xs px-3 py-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {testing ? 'Enviando...' : 'Enviar mensagem de teste'}
+            </button>
+          </div>
+
+          {/* OpenRouter */}
+          <div className="rounded-xl border border-white/10 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">OpenRouter (IA gratuita)</h3>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full ${settings?.openrouterConfigured ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-white/50'}`}>
+                {settings?.openrouterConfigured ? 'Configurado' : 'Não configurado'}
+              </span>
+            </div>
+
+            <ol className="text-xs text-white/60 space-y-1 list-decimal list-inside">
+              <li>
+                Crie uma conta grátis em{' '}
+                <a href="https://openrouter.ai" target="_blank" rel="noreferrer" className="text-electric hover:underline inline-flex items-center gap-1">
+                  openrouter.ai <ExternalLink className="w-3 h-3" />
+                </a>{' '}
+                e gere uma chave em <strong className="text-white/80">Keys</strong>.
+              </li>
+              <li>Cole a chave abaixo.</li>
+              <li>Escolha um modelo — a lista já mostra só os <strong className="text-white/80">gratuitos</strong> (termina em <code className="text-electric">:free</code>), buscada ao vivo do OpenRouter.</li>
+            </ol>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-white/60 mb-1">Chave da API</label>
+                <input
+                  type="password"
+                  className="input-field"
+                  value={form.openrouterApiKey}
+                  onChange={(e) => setForm((p) => ({ ...p, openrouterApiKey: e.target.value }))}
+                  placeholder={settings?.openrouterKeyPreview || 'sk-or-v1-...'}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">Modelo (gratuito)</label>
+                <select
+                  className="input-field"
+                  value={form.openrouterModel}
+                  onChange={(e) => setForm((p) => ({ ...p, openrouterModel: e.target.value }))}
+                >
+                  {models.length === 0 && <option value={form.openrouterModel}>{form.openrouterModel}</option>}
+                  {models.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {modelsWarning && <p className="text-[11px] text-amber-400/80">{modelsWarning}</p>}
+          </div>
+
+          <div className="flex justify-end">
+            <button type="submit" disabled={saving} className="btn btn-primary flex items-center gap-2 text-xs px-4 py-2">
+              <Check className="w-3.5 h-3.5" />
+              {saving ? 'Salvando...' : 'Salvar configurações'}
+            </button>
+          </div>
+        </form>
+      )}
+    </GlowCard>
+  )
+}
 
 function StatusDot({ ok }) {
   return (
@@ -39,7 +283,7 @@ export default function Settings() {
       const res = await api.getDashboardStats()
       setConfig(res.data?.data || res.data || null)
     } catch {
-      setConfig(getMockConfig())
+      setConfig(null)
     } finally {
       setLoading(false)
     }
@@ -111,6 +355,8 @@ export default function Settings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <BotSettingsCard />
+
         {/* Notifications */}
         <GlowCard>
           <div className="flex items-center gap-3 mb-4">
@@ -196,8 +442,8 @@ export default function Settings() {
             </div>
             <div>
               <h2 className="text-lg font-semibold text-white">Como configurar para deploy</h2>
-              <p className="text-xs text-white/50">
-                Esta aba mostra o status atual, mas a configuração de produção é feita por variáveis de ambiente.
+              <p className="text-sm text-white/70 mt-1">
+                Instruções para quando você for publicar o app: defina as variáveis de ambiente no painel do provedor (Vercel no frontend, Railway/Render no backend). Esta aba serve para ver status e cadastrar redes; as chaves de produção não são preenchidas aqui.
               </p>
             </div>
           </div>

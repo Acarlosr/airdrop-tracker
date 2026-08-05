@@ -7,19 +7,31 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatOptions {
+  /** Chave e modelo do usuário (robô por usuário). Sem isso, cai na config global do .env. */
+  apiKey?: string | null;
+  model?: string | null;
+}
+
 /**
- * Envia mensagens para o OpenRouter (modelo z-ai/glm-4.5-air:free) e retorna a resposta em texto.
+ * Envia mensagens para o OpenRouter e retorna a resposta em texto.
+ * Aceita `apiKey`/`model` por chamada (config por usuário); sem eles,
+ * usa a chave/modelo globais do .env (uso legado, single-tenant).
  */
-export async function chat(messages: ChatMessage[]): Promise<string> {
+export async function chat(messages: ChatMessage[], options: ChatOptions = {}): Promise<string> {
+  const apiKey = options.apiKey || env.OPENROUTER_API_KEY;
+  const model = options.model || env.OPENROUTER_MODEL;
+  if (!apiKey) throw new Error('Nenhuma chave OpenRouter configurada.');
+
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       'HTTP-Referer': env.CORS_ORIGIN,
     },
     body: JSON.stringify({
-      model: env.OPENROUTER_MODEL,
+      model,
       messages,
     }),
   });

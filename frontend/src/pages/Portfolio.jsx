@@ -11,10 +11,10 @@ import api from '../services/api';
  * Visualiza posições, Money Lego, riscos e sequência de saída
  */
 
-const defaultWallet = { address: '0x1234567890123456789012345678901234567890' };
+const EMPTY_PORTFOLIO = { metrics: { totalValue: 0, totalDebt: 0, netValue: 0 }, positions: [] };
 
 export function Portfolio({ wallet: walletProp }) {
-  const wallet = walletProp || defaultWallet;
+  const [wallet, setWallet] = useState(walletProp || null);
   const [portfolio, setPortfolio] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -23,20 +23,38 @@ export function Portfolio({ wallet: walletProp }) {
   const [exitSequence, setExitSequence] = useState(null);
 
   useEffect(() => {
-    if (!wallet?.address) return;
+    if (walletProp?.address) {
+      setWallet(walletProp);
+      return;
+    }
+    api.getWallets()
+      .then((response) => {
+        const firstWallet = response.data?.data?.find((item) => item.watch_enabled !== false) || response.data?.data?.[0];
+        if (firstWallet) setWallet(firstWallet);
+      })
+      .catch(() => setWallet(null));
+  }, [walletProp]);
+
+  useEffect(() => {
+    if (!wallet?.address) {
+      setPortfolio(EMPTY_PORTFOLIO);
+      setLoading(false);
+      return;
+    }
     const fetchPortfolioData = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/portfolio/${wallet.address}`).catch(() => ({
-          data: {
-            success: false,
-            data: getMockPortfolioData()
-          }
-        }));
-        setPortfolio(response.data.data || getMockPortfolioData());
+        const [positionsResponse, metricsResponse] = await Promise.all([
+          api.get(`/defi-portfolio/wallet/${wallet.address}/positions`),
+          api.get(`/defi-portfolio/wallet/${wallet.address}/metrics`),
+        ]);
+        setPortfolio({
+          positions: positionsResponse.data?.data?.tokens || [],
+          metrics: metricsResponse.data?.data || EMPTY_PORTFOLIO.metrics,
+        });
       } catch (error) {
         console.error('Error fetching portfolio:', error);
-        setPortfolio(getMockPortfolioData());
+        setPortfolio(EMPTY_PORTFOLIO);
       } finally {
         setLoading(false);
       }
@@ -50,22 +68,20 @@ export function Portfolio({ wallet: walletProp }) {
       try {
         const response = await api.get(`/money-lego/graph`, {
           params: { airdropId, wallet: wallet.address }
-        }).catch(() => ({
-          data: { graph: getMockMoneyLegoGraph() }
-        }));
-        setMoneyLegoGraph(response.data.graph || getMockMoneyLegoGraph());
-        const exitResp = await api.get(`/money-lego/exit-sequence`, {
+        });
+        setMoneyLegoGraph(response.data?.data || null);
+        const exitResp = await api.get(`/money-lego/exit`, {
           params: { airdropId, wallet: wallet.address }
-        }).catch(() => ({
-          data: { sequence: getMockExitSequence() }
-        }));
-        setExitSequence(exitResp.data.sequence || getMockExitSequence());
+        });
+        setExitSequence(exitResp.data?.data || null);
       } catch (error) {
         console.error('Error fetching Money Lego graph:', error);
+        setMoneyLegoGraph(null);
+        setExitSequence(null);
       }
     };
     fetchMoneyLegoGraph(selectedAirdrop);
-  }, [selectedAirdrop, wallet.address]);
+  }, [selectedAirdrop, wallet?.address]);
 
   if (loading) {
     return (

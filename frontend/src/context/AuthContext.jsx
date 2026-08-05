@@ -48,9 +48,20 @@ export function AuthProvider({ children }) {
         if (!cancelled && (status === 401 || status === 403)) {
           persistAuth(null, null);
         }
+      })
+      .finally(() => {
+        // Sem isto a tela fica presa em "Validando sessão…": o cleanup do effect
+        // só roda quando o token muda ou o componente desmonta.
+        if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; setLoading(false); };
   }, [token, persistAuth]);
+
+  useEffect(() => {
+    const handleUnauthorized = () => persistAuth(null, null);
+    window.addEventListener('claimos:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('claimos:unauthorized', handleUnauthorized);
+  }, [persistAuth]);
 
   const login = useCallback((newToken, newUser) => {
     persistAuth(newToken, newUser);

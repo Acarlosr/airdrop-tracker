@@ -61,14 +61,14 @@ function SummaryCard({ label, value, sub, variant = 'default' }) {
         default: 'from-white/5 to-transparent border-white/10',
         green: 'from-emerald-500/10 to-transparent border-emerald-500/20',
         red: 'from-red-500/10 to-transparent border-red-500/20',
-        blue: 'from-[rgba(59,91,255,0.10)] to-transparent border-[rgba(59,91,255,0.20)]',
+        blue: 'from-[rgba(240, 160, 32,0.10)] to-transparent border-[rgba(240, 160, 32,0.20)]',
         amber: 'from-amber-500/10 to-transparent border-amber-500/20',
     }
     const textColor = {
         default: 'text-white',
         green: 'text-emerald-400',
         red: 'text-red-400',
-        blue: 'text-[#7a9aff]',
+        blue: 'text-[#f5c15e]',
         amber: 'text-amber-400',
     }
     return (
@@ -119,14 +119,14 @@ function TransactionModal({ onClose, onSave, editData, airdrops }) {
             <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
             <div
                 className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl border overflow-hidden"
-                style={{ background: 'var(--surface-card)', borderColor: 'rgba(59,91,255,0.20)' }}
+                style={{ background: 'var(--surface-card)', borderColor: 'rgba(240, 160, 32,0.20)' }}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 flex-shrink-0"
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl" style={{ background: 'rgba(59,91,255,0.15)', border: '1px solid rgba(59,91,255,0.30)' }}>
-                            {editData?.id ? <Edit3 className="w-4 h-4 text-[#7a9aff]" /> : <Plus className="w-4 h-4 text-[#7a9aff]" />}
+                        <div className="p-2 rounded-xl" style={{ background: 'rgba(240, 160, 32,0.15)', border: '1px solid rgba(240, 160, 32,0.30)' }}>
+                            {editData?.id ? <Edit3 className="w-4 h-4 text-[#f5c15e]" /> : <Plus className="w-4 h-4 text-[#f5c15e]" />}
                         </div>
                         <h2 className="text-lg font-bold text-white">
                             {editData?.id ? 'Editar Transação' : 'Nova Transação'}
@@ -149,10 +149,10 @@ function TransactionModal({ onClose, onSave, editData, airdrops }) {
                                     type="button"
                                     onClick={() => setForm(p => ({ ...p, type: t.id }))}
                                     className={`inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border transition-all ${form.type === t.id
-                                        ? 'border-[rgba(59,91,255,0.45)] text-[#7a9aff]'
+                                        ? 'border-[rgba(240, 160, 32,0.45)] text-[#f5c15e]'
                                         : 'border-[rgba(255,255,255,0.08)] text-white/50 hover:border-[rgba(255,255,255,0.18)] hover:text-white/80'
                                         }`}
-                                    style={form.type === t.id ? { background: 'rgba(59,91,255,0.13)' } : { background: 'rgba(255,255,255,0.03)' }}
+                                    style={form.type === t.id ? { background: 'rgba(240, 160, 32,0.13)' } : { background: 'rgba(255,255,255,0.03)' }}
                                 >
                                     {form.type === t.id && <Check className="w-2.5 h-2.5" />}
                                     <span>{t.emoji}</span>
@@ -277,13 +277,16 @@ export default function Transactions() {
                 api.getAirdrops({ limit: 200 }),
             ])
 
-            setTxList(txRes.status === 'fulfilled' ? txRes.value.data?.data ?? [] : getMockTxList())
-            setSummary(sumRes.status === 'fulfilled' ? sumRes.value.data?.data ?? getMockSummary() : getMockSummary())
+            setTxList(txRes.status === 'fulfilled' ? txRes.value.data?.data ?? [] : [])
+            setSummary(sumRes.status === 'fulfilled' ? sumRes.value.data?.data ?? null : null)
             setAirdrops(airRes.status === 'fulfilled' ? airRes.value.data?.data ?? [] : [])
+            if ([txRes, sumRes, airRes].some((result) => result.status === 'rejected')) {
+                setError('Alguns dados não puderam ser carregados.')
+            }
         } catch {
-            setError('Não foi possível carregar. Exibindo dados de exemplo.')
-            setTxList(getMockTxList())
-            setSummary(getMockSummary())
+            setError('Não foi possível carregar as transações.')
+            setTxList([])
+            setSummary(null)
         } finally {
             setLoading(false)
         }
@@ -412,7 +415,7 @@ export default function Transactions() {
             {/* Transaction List */}
             {loading ? (
                 <div className="flex justify-center py-16">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#3b5bff] border-t-transparent" />
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#f0a020] border-t-transparent" />
                 </div>
             ) : filteredList.length === 0 ? (
                 <GlowCard>
@@ -430,7 +433,7 @@ export default function Transactions() {
                         const typeInfo = TYPE_MAP[tx.type] || TX_TYPES[0]
                         const Icon = typeInfo.icon
                         const colorMap = {
-                            blue: 'bg-[rgba(59,91,255,0.10)] text-[#7a9aff] border-[rgba(59,91,255,0.20)]',
+                            blue: 'bg-[rgba(240, 160, 32,0.10)] text-[#f5c15e] border-[rgba(240, 160, 32,0.20)]',
                             green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
                             purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
                             amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',

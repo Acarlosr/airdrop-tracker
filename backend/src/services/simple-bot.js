@@ -19,18 +19,12 @@ export async function processMessage(userId, message, walletAddress) {
 
   const systemPrompt = `Você é um assistente especializado em DeFi e airdrops.
 
-Wallet do usuário: ${walletAddress}
+Wallet do usuário (somente leitura): ${walletAddress}
 
-IMPORTANTE: Se o usuário pedir para executar uma ação (claim, stake, vote, swap, bridge),
-responda colocando a ação em linhas com [ACTION] e [/ACTION]:
-
-[ACTION]
-{
-  "type": "claim",
-  "protocol": "arbitrum",
-  "chain": "arbitrum"
-}
-[/ACTION]
+IMPORTANTE: Este sistema é SOMENTE LEITURA. Você NUNCA executa nem propõe executar
+transações (claim, stake, swap, bridge, vote). Se o usuário pedir isso, explique que
+ele deve fazer manualmente no site oficial do projeto e oriente os passos com cuidado
+(verificar URL oficial, nunca assinar transação desconhecida).
 
 Seja conciso. Responda em português.`;
 
@@ -61,22 +55,9 @@ Seja conciso. Responda em português.`;
 
     const aiResponse = completion.choices[0].message.content;
 
-    // Extrair ações
-    const actionMatch = aiResponse.match(/\[ACTION\]([\s\S]*?)\[\/ACTION\]/);
-    let actions = [];
-    
-    if (actionMatch) {
-      try {
-        actions = [JSON.parse(actionMatch[1])];
-      } catch (e) {
-        console.error('Failed to parse action:', actionMatch[1]);
-      }
-    }
-
-    // Limpar resposta
-    const cleanResponse = aiResponse
-      .replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '')
-      .trim();
+    // Sistema somente leitura: nenhuma ação é extraída ou executada.
+    const actions = [];
+    const cleanResponse = aiResponse.trim();
 
     // Salvar no histórico
     history.push({ role: 'user', content: message });

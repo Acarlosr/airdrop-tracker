@@ -1,70 +1,35 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Twitter, MessageCircle, Search, RefreshCw, Zap } from 'lucide-react';
-
-const SAMPLE_POSTS = [
-  {
-    id: '1',
-    source: 'twitter',
-    author: '@OptimismGov',
-    content: '🎉 Airdrop Phase 2 aberto! Claim agora se você tiver 10+ transações. Snapshot: 2024-02-20',
-    timestamp: new Date(Date.now() - 3600000),
-    url: '#',
-    urgent: true
-  },
-  {
-    id: '2',
-    source: 'discord',
-    author: 'ArbitrumBot',
-    content: '⚡ Snapshot elegibilidade: Se você tiver 10+ transações, você pode estar elegível para o airdrop!',
-    timestamp: new Date(Date.now() - 7200000),
-    url: '#',
-    urgent: false
-  },
-  {
-    id: '3',
-    source: 'twitter',
-    author: '@BaseProtocol',
-    content: 'Base airdrop snapshot: 2024-02-20. Prepare sua wallet! Verifique sua elegibilidade em https://base.org/airdrop',
-    timestamp: new Date(Date.now() - 10800000),
-    url: '#',
-    urgent: true
-  },
-  {
-    id: '4',
-    source: 'discord',
-    author: 'Polygon Team',
-    content: 'Novo protocolo no Polygon! POL token distribuição começando. Visite nosso site para mais detalhes.',
-    timestamp: new Date(Date.now() - 14400000),
-    url: '#',
-    urgent: false
-  }
-];
+import api from '../services/api';
 
 export function SocialFeed() {
-  const [posts] = useState(SAMPLE_POSTS);
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setLoading(true);
-
+    setError('');
     try {
-      // Simular fetch (trocar por API real depois)
-      await new Promise(r => setTimeout(r, 1000));
-
-      // Aqui você chamaria:
-      // const response = await fetch('/api/social/feed');
-      // const data = await response.json();
-      // setPosts(data.posts);
-
-      console.log('Feed atualizado');
-    } catch (error) {
-      console.error('Error:', error);
+      const response = await api.getSocialFeed({ limit: 20 });
+      const data = response.data?.data || response.data?.posts || [];
+      setPosts(data.map((post) => ({
+        ...post,
+        source: post.source || post.platform,
+        timestamp: new Date(post.timestamp || post.posted_at || post.created_at),
+        url: post.url || post.source_url || null,
+        urgent: post.urgent || post.urgency === 'urgent',
+      })));
+    } catch {
+      setPosts([]);
+      setError('Feed social indisponível.');
     }
-
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => { handleRefresh(); }, [handleRefresh]);
 
   const filteredPosts = posts.filter(post => {
     // Filtro por fonte
@@ -132,6 +97,7 @@ export function SocialFeed() {
 
       {/* Posts */}
       <div className="space-y-2">
+        {error && <div className="text-xs rounded-lg border px-3 py-2" style={{ color: 'var(--warning)', borderColor: 'rgba(251,191,36,.25)' }}>{error}</div>}
         {loading ? (
           <div className="text-center py-6 text-xs" style={{ color: 'var(--text-secondary)' }}>
             Carregando alertas...
@@ -147,10 +113,10 @@ export function SocialFeed() {
             return (
               <a
                 key={post.id}
-                href={post.url}
+                href={post.url || undefined}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block rounded-xl p-3 text-sm transition-colors"
+                className={`block rounded-xl p-3 text-sm transition-colors ${post.url ? '' : 'cursor-default'}`}
                 style={{
                   background: 'var(--surface-2)',
                   border: '1px solid var(--border)',
@@ -182,7 +148,7 @@ export function SocialFeed() {
                       </span>
                     )}
                     <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                      {post.timestamp.toLocaleString('pt-BR')}
+                      {Number.isNaN(post.timestamp.getTime()) ? 'Data não informada' : post.timestamp.toLocaleString('pt-BR')}
                     </span>
                   </div>
                 </div>
@@ -191,9 +157,7 @@ export function SocialFeed() {
                   {post.content}
                 </p>
 
-                <div className="text-[10px]" style={{ color: accentColor }}>
-                  {isTwitter ? '→ Ver no Twitter' : '→ Ver no Discord'}
-                </div>
+                {post.url && <div className="text-[10px]" style={{ color: accentColor }}>{isTwitter ? '→ Ver no Twitter' : '→ Ver no Discord'}</div>}
               </a>
             )
           })

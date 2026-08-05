@@ -160,3 +160,13 @@ export function verifySessionToken(token) {
     return null;
   }
 }
+
+/**
+ * Valida o Bearer token usado pelas rotas JavaScript efetivamente registradas.
+ */
+export function authenticateRequest(request) {
+  const authHeader = request.headers?.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return null;
+  return verifySessionToken(token);
+}

@@ -64,9 +64,9 @@ export function RobotChat() {
                                 <button key={i} onClick={() => handleSend(s)}
                                     className="text-xs px-3 py-1.5 rounded-full transition-all hover:scale-105"
                                     style={{
-                                        background: 'rgba(59,91,255,0.10)',
-                                        color: '#7a9aff',
-                                        border: '1px solid rgba(59,91,255,0.20)',
+                                        background: 'rgba(240, 160, 32,0.10)',
+                                        color: '#f5c15e',
+                                        border: '1px solid rgba(240, 160, 32,0.20)',
                                     }}>
                                     {s}
                                 </button>
@@ -82,9 +82,9 @@ export function RobotChat() {
                             : 'rounded-bl-md text-white/90'
                             }`} style={{
                                 background: msg.role === 'user'
-                                    ? 'rgba(59,91,255,0.25)'
+                                    ? 'rgba(240, 160, 32,0.25)'
                                     : 'rgba(255,255,255,0.04)',
-                                border: `1px solid ${msg.role === 'user' ? 'rgba(59,91,255,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                                border: `1px solid ${msg.role === 'user' ? 'rgba(240, 160, 32,0.35)' : 'rgba(255,255,255,0.08)'}`,
                             }}>
                             <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                             {msg.offline && (
@@ -100,7 +100,7 @@ export function RobotChat() {
                     <div className="flex justify-start">
                         <div className="px-4 py-3 rounded-2xl rounded-bl-md"
                             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            <Loader className="w-4 h-4 animate-spin" style={{ color: '#7a9aff' }} />
+                            <Loader className="w-4 h-4 animate-spin" style={{ color: '#f5c15e' }} />
                         </div>
                     </div>
                 )}
@@ -122,7 +122,7 @@ export function RobotChat() {
                     />
                     <button type="submit" disabled={loading || !input.trim()}
                         className="px-4 py-2.5 rounded-xl transition-all disabled:opacity-30"
-                        style={{ background: 'rgba(59,91,255,0.20)', color: '#7a9aff', border: '1px solid rgba(59,91,255,0.30)' }}>
+                        style={{ background: 'rgba(240, 160, 32,0.20)', color: '#f5c15e', border: '1px solid rgba(240, 160, 32,0.30)' }}>
                         <Send className="w-4 h-4" />
                     </button>
                 </div>

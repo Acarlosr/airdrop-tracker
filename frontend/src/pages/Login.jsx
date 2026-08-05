@@ -1,293 +1,153 @@
-import { useState, useEffect } from 'react';
-import { Zap } from 'lucide-react';
-import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { env } from '../lib/env.js';
+import { useEffect, useState } from 'react'
+import { ShieldCheck } from 'lucide-react'
+import api from '../services/api'
+import { useAuth } from '../context/AuthContext'
+import { env } from '../lib/env.js'
+import { ClaimOSLogo } from '../components/ClaimOSLogo'
 
 export default function Login() {
-  const { login } = useAuth();
-  const [step, setStep] = useState('google'); // 'google' | 'otp'
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [pendingUser, setPendingUser] = useState(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [resendMessage, setResendMessage] = useState('');
+  const { login } = useAuth()
+  const [pendingUser, setPendingUser] = useState(null)
+  const [email, setEmail] = useState('dev@localhost')
+  const [otp, setOtp] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const t = setInterval(() => setResendCooldown((c) => c - 1), 1000);
-    return () => clearInterval(t);
-  }, [resendCooldown]);
+  const finishLogin = (data) => {
+    if (!data?.token) throw new Error('O backend não retornou uma sessão válida.')
+    login(data.token, data.user)
+  }
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    const credential = credentialResponse?.credential;
-    if (!credential) {
-      setError('Falha ao obter credencial do Google.');
-      return;
-    }
-    setLoading(true);
-    setError('');
+  const handleGoogleSuccess = async ({ credential }) => {
+    setLoading(true)
+    setError('')
     try {
-      const res = await api.post('/auth/google', { credential });
-      const data = res.data;
-      if (data.requireOtp) {
-        setPendingUser({
-          identifier: data.identifier,
-          email: data.email,
-          name: data.name,
-          picture: data.picture,
-          otpCode: data.otpCode ?? data.otpDev,
-        });
-        setStep('otp');
-      }
+      const response = await api.post('/auth/google', { credential })
+      finishLogin(response.data)
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao conectar com Google.');
+      setError(err.response?.data?.error || err.message || 'Não foi possível entrar com Google.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const handleGoogleError = () => {
-    setError('Login com Google falhou.');
-  };
-
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-    if (!pendingUser || !otp.trim()) return;
-    setLoading(true);
-    setError('');
+  const requestDevOtp = async (event) => {
+    event.preventDefault()
+    setLoading(true)
+    setError('')
     try {
-      const res = await api.post('/auth/otp/verify', {
+      const response = await api.post('/auth/dev/request-otp', { email, name: 'Operador local' })
+      setPendingUser(response.data)
+      setOtp(response.data?.otpCode || '')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Não foi possível iniciar a sessão local.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verifyDevOtp = async (event) => {
+    event.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      const response = await api.post('/auth/otp/verify', {
         identifier: pendingUser.identifier,
-        code: otp.trim(),
-        name: pendingUser.name,
-        picture: pendingUser.picture,
-      });
-      login(res.data.token, res.data.user);
+        code: otp,
+      })
+      finishLogin(response.data)
     } catch (err) {
-      setError(err.response?.data?.error || 'OTP inválido ou expirado.');
+      setError(err.response?.data?.error || 'Código inválido ou expirado.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  const backToGoogle = () => {
-    setStep('google');
-    setPendingUser(null);
-    setOtp('');
-    setError('');
-    setResendMessage('');
-    setResendCooldown(0);
-  };
-
-  const handleResendOtp = async () => {
-    if (!pendingUser || resendCooldown > 0) return;
-    setLoading(true);
-    setError('');
-    setResendMessage('');
-    try {
-      const res = await api.post('/auth/otp/resend', { identifier: pendingUser.identifier });
-      const code = res.data?.otpCode ?? res.data?.otpDev;
-      setPendingUser((prev) => (prev && code ? { ...prev, otpCode: code } : prev));
-      setResendMessage('Novo código enviado!');
-      setResendCooldown(60);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Não foi possível reenviar. Tente voltar e iniciar de novo.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const clientId = env.GOOGLE_CLIENT_ID;
-  const appName = env.APP_NAME || 'ClaimOS';
-
-  const handleDevRequestOtp = async (e) => {
-    e.preventDefault();
-    const email = e.target?.email?.value || 'dev@localhost';
-    setLoading(true);
-    setError('');
-    try {
-      const res = await api.post('/auth/dev/request-otp', { email, name: 'Dev User' });
-      const d = res.data;
-      setPendingUser({
-        identifier: d.identifier,
-        email: d.email,
-        name: d.name,
-        picture: d.picture,
-        otpCode: d.otpCode ?? d.otpDev,
-      });
-      setStep('otp');
-    } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao solicitar OTP.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-[#0f1419] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-white/10 bg-[#161e2e] shadow-glow p-8 relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-b before:from-transparent before:to-[rgba(0,212,255,0.08)] before:pointer-events-none">
-          <div className="flex flex-col items-center mb-6">
-            <div className="p-3 rounded-xl bg-electric/10 border border-electric/20 mb-4">
-              <Zap className="w-10 h-10 text-electric" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">{appName}</h1>
-            <p className="text-white/50 text-sm mt-1">Conecte-se com Google + código OTP</p>
-          </div>
-
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          {step === 'google' && (
-            <>
-              <p className="text-white/70 text-sm text-center mb-6">
-                Entre com sua conta Google. Em seguida, insira o código OTP enviado.
-              </p>
-              {clientId ? (
-                <div className="flex justify-center">
-                  <GoogleButton onSuccess={handleGoogleSuccess} onError={handleGoogleError} clientId={clientId} />
-                </div>
-              ) : (
-                <form onSubmit={handleDevRequestOtp} className="space-y-3">
-                  <p className="text-amber-400/90 text-sm text-center">
-                    Configure VITE_GOOGLE_CLIENT_ID no .env para login com Google. Modo dev (sem Google):
-                  </p>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="email@dev.local"
-                    defaultValue="dev@localhost"
-                    className="w-full px-4 py-3 rounded-xl bg-[#0f1419] border border-white/10 text-white focus:border-electric focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 rounded-xl bg-electric/20 text-electric border border-electric/30 hover:bg-electric/30"
-                  >
-                    {loading ? 'Enviando...' : 'Solicitar OTP (dev)'}
-                  </button>
-                </form>
-              )}
-              {loading && (
-                <p className="text-center text-white/50 text-sm mt-4">Verificando...</p>
-              )}
-            </>
-          )}
-
-          {step === 'otp' && pendingUser && (
-            <form onSubmit={handleOtpSubmit} className="space-y-4">
-              <p className="text-white/70 text-sm text-center">
-                Para <span className="text-electric">{pendingUser.email}</span>
-              </p>
-              <p className="text-amber-400/90 text-sm text-center">
-                O código <strong>não é enviado por e-mail</strong>. Use o código que aparece abaixo:
-              </p>
-              {pendingUser.otpCode ? (
-                <div className="rounded-xl bg-electric/10 border-2 border-electric/40 p-4 text-center">
-                  <p className="text-white/60 text-xs uppercase tracking-wider mb-1">Seu código de 6 dígitos</p>
-                  <p className="text-3xl font-mono font-bold text-electric tracking-[0.4em]">{pendingUser.otpCode}</p>
-                </div>
-              ) : (
-                <p className="text-amber-400/90 text-sm text-center">
-                  Carregando código… Se não aparecer, solicite um novo código abaixo.
-                </p>
-              )}
-              {resendMessage && (
-                <p className="text-center text-electric text-sm">{resendMessage}</p>
-              )}
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="000000"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                className="w-full px-4 py-3 rounded-xl bg-[#0f1419] border border-white/10 text-white text-center text-xl tracking-[0.5em] focus:border-electric focus:outline-none"
-              />
-              <p className="text-center text-sm text-white/50">
-                Não recebeu?{' '}
-                {resendCooldown > 0 ? (
-                  <span>Solicitar novo código em {resendCooldown}s</span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={loading}
-                    className="text-electric hover:underline focus:outline-none disabled:opacity-50"
-                  >
-                    Solicitar novo código
-                  </button>
-                )}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={backToGoogle}
-                  className="flex-1 py-3 rounded-xl bg-[#1e293b] text-white/90 border border-white/10 hover:border-white/20"
-                >
-                  Voltar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || otp.length < 6}
-                  className="flex-1 py-3 rounded-xl bg-electric text-[#0f1419] font-semibold hover:shadow-glow disabled:opacity-50"
-                >
-                  {loading ? 'Verificando...' : 'Confirmar'}
-                </button>
-              </div>
-            </form>
-          )}
+    <main className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--background)' }}>
+      <section className="w-full max-w-md rounded-2xl border p-7 shadow-2xl" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+        <div className="flex justify-center mb-5" style={{ color: 'var(--primary)' }}>
+          <ClaimOSLogo size={58} />
         </div>
-      </div>
-    </div>
-  );
+        <h1 className="text-2xl font-bold text-center" style={{ color: 'var(--text-primary)' }}>{env.APP_NAME}</h1>
+        <p className="text-sm text-center mt-2 mb-6" style={{ color: 'var(--text-secondary)' }}>
+          Painel privado e somente leitura para acompanhar carteiras e oportunidades.
+        </p>
+
+        {error && (
+          <div role="alert" className="mb-4 rounded-xl border px-4 py-3 text-sm" style={{ color: 'var(--danger)', borderColor: 'rgba(248,113,113,.35)', background: 'rgba(248,113,113,.08)' }}>
+            {error}
+          </div>
+        )}
+
+        {env.GOOGLE_CLIENT_ID ? (
+          <GoogleButton clientId={env.GOOGLE_CLIENT_ID} onSuccess={handleGoogleSuccess} onError={() => setError('Login com Google cancelado ou indisponível.')} />
+        ) : !import.meta.env.DEV ? (
+          <div className="rounded-xl border px-4 py-4 text-sm" style={{ color: 'var(--warning)', borderColor: 'rgba(251,191,36,.3)', background: 'rgba(251,191,36,.06)' }}>
+            Login indisponível. Configure <code>VITE_GOOGLE_CLIENT_ID</code> no ambiente de produção.
+          </div>
+        ) : pendingUser ? (
+          <form onSubmit={verifyDevOtp} className="space-y-4">
+            <div className="rounded-xl border p-4 text-center" style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
+              <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Código local</p>
+              <p className="mt-1 text-2xl font-mono font-bold tracking-[0.3em]" style={{ color: 'var(--primary)' }}>{pendingUser.otpCode}</p>
+            </div>
+            <label className="block text-sm" style={{ color: 'var(--text-secondary)' }}>
+              Código de 6 dígitos
+              <input value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} className="input-field mt-2 text-center text-lg tracking-[0.3em]" inputMode="numeric" autoFocus />
+            </label>
+            <button className="btn btn-primary w-full" disabled={loading || otp.length !== 6}>{loading ? 'Validando…' : 'Entrar no painel'}</button>
+          </form>
+        ) : (
+          <form onSubmit={requestDevOtp} className="space-y-4">
+            <div className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
+              <ShieldCheck className="w-4 h-4" style={{ color: 'var(--success)' }} />
+              Modo local de desenvolvimento. Nenhuma wallet será conectada.
+            </div>
+            <label className="block text-sm" style={{ color: 'var(--text-secondary)' }}>
+              E-mail local
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input-field mt-2" required />
+            </label>
+            <button className="btn btn-primary w-full" disabled={loading}>{loading ? 'Gerando código…' : 'Gerar acesso local'}</button>
+          </form>
+        )}
+
+        <p className="mt-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+          O ClaimOS armazena apenas endereços públicos. Nunca informe seed phrase ou chave privada.
+        </p>
+      </section>
+    </main>
+  )
 }
 
-// Componente que usa o script do Google Identity Services para botão e callback com credential
-function GoogleButton({ onSuccess, onError, clientId }) {
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+function GoogleButton({ clientId, onSuccess, onError }) {
+  const [ready, setReady] = useState(Boolean(window.google))
 
   useEffect(() => {
-    if (typeof window === 'undefined' || window.google) {
-      setScriptLoaded(!!window.google);
-      return;
+    if (window.google) return
+    const existing = document.querySelector('script[data-claimos-google]')
+    if (existing) {
+      existing.addEventListener('load', () => setReady(true), { once: true })
+      return
     }
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.onload = () => setScriptLoaded(true);
-    document.head.appendChild(script);
-    return () => {};
-  }, []);
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.dataset.claimosGoogle = 'true'
+    script.addEventListener('load', () => setReady(true), { once: true })
+    script.addEventListener('error', onError, { once: true })
+    document.head.appendChild(script)
+  }, [onError])
 
   useEffect(() => {
-    if (!scriptLoaded || !window.google || !clientId) return;
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: (res) => {
-        if (res?.credential) onSuccess({ credential: res.credential });
-        else onError();
-      },
-    });
-  }, [scriptLoaded, clientId, onSuccess, onError]);
+    if (!ready || !window.google) return
+    window.google.accounts.id.initialize({ client_id: clientId, callback: onSuccess })
+    const container = document.getElementById('claimos-google-login')
+    if (container) {
+      container.replaceChildren()
+      window.google.accounts.id.renderButton(container, { theme: 'filled_black', size: 'large', text: 'continue_with', width: 330 })
+    }
+  }, [clientId, onSuccess, ready])
 
-  useEffect(() => {
-    if (!scriptLoaded || !window.google || !clientId) return;
-    const el = document.getElementById('google-login-btn');
-    if (!el) return;
-    window.google.accounts.id.renderButton(el, {
-      type: 'standard',
-      theme: 'filled_black',
-      size: 'large',
-      text: 'continue_with',
-      width: 280,
-    });
-  }, [scriptLoaded, clientId]);
-
-  return <div id="google-login-btn" className="flex justify-center" />;
+  return <div id="claimos-google-login" className="min-h-11 flex items-center justify-center">{!ready && <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Carregando login seguro…</span>}</div>
 }

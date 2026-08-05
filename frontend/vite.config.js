@@ -14,6 +14,14 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          charts: ['recharts', 'chart.js', 'react-chartjs-2'],
+          web3: ['ethers', 'reactflow'],
+        }
+      }
+    }
   }
 })

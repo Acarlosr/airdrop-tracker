@@ -98,7 +98,7 @@ export function RobotStatusPanel({ status, onRefresh, onToggle }) {
             <div className="flex gap-2">
                 <button onClick={handleAnalyze} disabled={analyzing}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02] disabled:opacity-50"
-                    style={{ background: 'rgba(59,91,255,0.15)', color: '#7a9aff', border: '1px solid rgba(59,91,255,0.30)' }}>
+                    style={{ background: 'rgba(240, 160, 32,0.15)', color: '#f5c15e', border: '1px solid rgba(240, 160, 32,0.30)' }}>
                     <RefreshCw className={`w-4 h-4 ${analyzing ? 'animate-spin' : ''}`} />
                     {analyzing ? 'Analisando...' : 'Analisar Agora'}
                 </button>

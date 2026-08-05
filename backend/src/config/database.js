@@ -32,13 +32,33 @@ export const initDatabase = async () => {
 
 export const getPool = () => pool || null;
 
+/**
+ * Safe query wrapper — retorna { rows: [] } se não houver pool.
+ * Assim as rotas que fazem query não crasham em preview mode.
+ */
+export const query = async (text, params) => {
+  if (!pool) {
+    logger.debug(`[Preview Mode] Query skipped: ${text?.slice(0, 60)}...`);
+    return { rows: [], rowCount: 0 };
+  }
+  const start = Date.now();
+  try {
+    const res = await pool.query(text, params);
+    const duration = Date.now() - start;
+    logger.debug('Executed query', { text, duration, rows: res.rowCount });
+    return res;
+  } catch (err) {
+    logger.error('Query error:', err.message);
+    throw err;
+  }
+};
+
 const createTables = async () => {
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    // Airdrops table
     await client.query(`
       CREATE TABLE IF NOT EXISTS airdrops (
         id VARCHAR(100) PRIMARY KEY,
@@ -72,7 +92,6 @@ const createTables = async () => {
       ALTER TABLE airdrops ADD COLUMN IF NOT EXISTS wallet_status JSONB;
     `);
 
-    // Wallets table
     await client.query(`
       CREATE TABLE IF NOT EXISTS wallets (
         address VARCHAR(42) PRIMARY KEY,
@@ -82,7 +101,6 @@ const createTables = async () => {
       );
     `);
 
-    // Eligibility checks table
     await client.query(`
       CREATE TABLE IF NOT EXISTS eligibility_checks (
         id SERIAL PRIMARY KEY,
@@ -96,7 +114,6 @@ const createTables = async () => {
       );
     `);
 
-    // Alerts table
     await client.query(`
       CREATE TABLE IF NOT EXISTS alerts (
         id SERIAL PRIMARY KEY,
@@ -112,7 +129,6 @@ const createTables = async () => {
       );
     `);
 
-    // Social posts cache
     await client.query(`
       CREATE TABLE IF NOT EXISTS social_posts (
         id VARCHAR(100) PRIMARY KEY,
@@ -128,7 +144,6 @@ const createTables = async () => {
       );
     `);
 
-    // Transactions history
     await client.query(`
       CREATE TABLE IF NOT EXISTS wallet_transactions (
         id SERIAL PRIMARY KEY,
@@ -146,7 +161,6 @@ const createTables = async () => {
       );
     `);
 
-    // Financial transactions table (investments, claims, swaps, gas)
     await client.query(`
       CREATE TABLE IF NOT EXISTS transactions (
         id SERIAL PRIMARY KEY,
@@ -166,7 +180,6 @@ const createTables = async () => {
       );
     `);
 
-    // AI Robot Insights table
     await client.query(`
       CREATE TABLE IF NOT EXISTS ai_insights (
         id VARCHAR(100) PRIMARY KEY,
@@ -179,7 +192,6 @@ const createTables = async () => {
       );
     `);
 
-    // AI Robot Reminders table
     await client.query(`
       CREATE TABLE IF NOT EXISTS ai_reminders (
         id VARCHAR(100) PRIMARY KEY,
@@ -193,7 +205,6 @@ const createTables = async () => {
       );
     `);
 
-    // Create indexes
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_airdrops_status ON airdrops(status);
       CREATE INDEX IF NOT EXISTS idx_airdrops_chain ON airdrops(chain);
@@ -224,15 +235,6 @@ const createTables = async () => {
   } finally {
     client.release();
   }
-};
-
-export const query = async (text, params) => {
-  const start = Date.now();
-  const res = await pool.query(text, params);
-  const duration = Date.now() - start;
-
-  logger.debug('Executed query', { text, duration, rows: res.rowCount });
-  return res;
 };
 
 export default { initDatabase, getPool, query };

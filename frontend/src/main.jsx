@@ -6,7 +6,7 @@ function showError(root, title, err) {
   const msg = err?.message || String(err)
   const stack = err?.stack || ''
   root.innerHTML = '<div style="min-height:100vh;background:#0f1419;color:#fff;padding:24px;font-family:system-ui">' +
-    '<h1 style="color:#00d4ff">' + (title || 'Erro') + '</h1>' +
+    '<h1 style="color:#f0a020">' + (title || 'Erro') + '</h1>' +
     '<pre style="color:#f87171;overflow:auto;font-size:14px">' + (msg + '\n\n' + stack).replace(/</g, '&lt;') + '</pre>' +
     '</div>'
 }
@@ -67,7 +67,7 @@ function Bootstrap() {
   if (err) {
     return (
       <div style={{ minHeight: '100vh', background: '#0f1419', color: '#fff', padding: 24, fontFamily: 'system-ui' }}>
-        <h1 style={{ color: '#00d4ff' }}>Erro ao carregar</h1>
+        <h1 style={{ color: '#f0a020' }}>Erro ao carregar</h1>
         <pre style={{ color: '#f87171', overflow: 'auto' }}>{err?.message}</pre>
       </div>
     )
@@ -76,7 +76,7 @@ function Bootstrap() {
   return (
     <div style={{ minHeight: '100vh', background: '#0f1419', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 40, height: 40, border: '2px solid #00d4ff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+        <div style={{ width: 40, height: 40, border: '2px solid #f0a020', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
         <p>Carregando…</p>
       </div>
     </div>

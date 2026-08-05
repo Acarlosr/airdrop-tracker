@@ -208,6 +208,21 @@ export default async function airdropRoutes(fastify, options) {
       reply.code(500).send({ error: 'Failed to update airdrop' });
     }
   });
+
+  // DELETE /api/airdrops/:id - Remove airdrop
+  fastify.delete('/:id', async (request, reply) => {
+    const { id } = request.params;
+    try {
+      const result = await query('DELETE FROM airdrops WHERE id = $1 RETURNING id', [id]);
+      if (result.rows.length === 0) {
+        return reply.code(404).send({ error: 'Airdrop not found' });
+      }
+      return { success: true, deleted: true };
+    } catch (err) {
+      logger.error({ err, id }, 'Error deleting airdrop');
+      return reply.code(500).send({ error: 'Failed to delete airdrop' });
+    }
+  });
   
   // GET /api/airdrops/active/count - Get active airdrops count
   fastify.get('/active/count', async (request, reply) => {

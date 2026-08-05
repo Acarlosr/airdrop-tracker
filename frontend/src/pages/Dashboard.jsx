@@ -28,13 +28,13 @@ function daysUntil(date) {
 }
 
 // ── Chart colors ──────────────────────────────────────────────────
-const CHART_COLORS = ['#3b5bff', '#7a9aff', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#fb923c', '#38bdf8']
+const CHART_COLORS = ['#f0a020', '#f5c15e', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#fb923c', '#38bdf8']
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-xl px-4 py-3 text-xs"
-      style={{ background: 'var(--surface-card)', border: '1px solid rgba(59,91,255,0.25)' }}>
+      style={{ background: 'var(--surface-card)', border: '1px solid rgba(240, 160, 32,0.25)' }}>
       <p className="text-white/60 mb-1">{label}</p>
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }} className="font-medium">
@@ -115,6 +115,7 @@ export default function Dashboard() {
   const [airdrops, setAirdrops] = useState([])
   const [, setRecentTx] = useState([])
   const [loading, setLoading] = useState(true)
+  const [dataError, setDataError] = useState('')
   const [assistantExpanded, setAssistantExpanded] = useState(false)
 
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function Dashboard() {
   }, [])
 
   const fetchDashboardData = async () => {
+    setDataError('')
     try {
       const [statsRes, txSumRes, airRes, txRes] = await Promise.allSettled([
         api.get('/analytics/dashboard'),
@@ -131,13 +133,17 @@ export default function Dashboard() {
       ])
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data?.data)
-      setTxSummary(txSumRes.status === 'fulfilled' ? txSumRes.value.data?.data ?? getMockTxSummary() : getMockTxSummary())
-      setAirdrops(airRes.status === 'fulfilled' ? airRes.value.data?.data ?? getMockAirdrops() : getMockAirdrops())
-      setRecentTx(txRes.status === 'fulfilled' ? txRes.value.data?.data ?? getMockRecentTx() : getMockRecentTx())
+      setTxSummary(txSumRes.status === 'fulfilled' ? txSumRes.value.data?.data ?? null : null)
+      setAirdrops(airRes.status === 'fulfilled' ? airRes.value.data?.data ?? [] : [])
+      setRecentTx(txRes.status === 'fulfilled' ? txRes.value.data?.data ?? [] : [])
+      if ([statsRes, txSumRes, airRes, txRes].some((result) => result.status === 'rejected')) {
+        setDataError('Alguns dados não puderam ser atualizados. Nenhum valor fictício foi exibido.')
+      }
     } catch {
-      setTxSummary(getMockTxSummary())
-      setAirdrops(getMockAirdrops())
-      setRecentTx(getMockRecentTx())
+      setTxSummary(null)
+      setAirdrops([])
+      setRecentTx([])
+      setDataError('O backend está indisponível. Verifique a configuração antes de operar.')
     } finally {
       setLoading(false)
     }
@@ -181,7 +187,7 @@ export default function Dashboard() {
       acc[chain] = (acc[chain] || 0) + (parseFloat(a.total_spent) || 0)
       return acc
     }, {})
-    : { ethereum: 1200, arbitrum: 800, optimism: 500, base: 300 }
+    : {}
 
   const pieData = Object.entries(chainDistribution)
     .map(([name, value]) => ({ name, value: parseFloat(value) }))
@@ -197,6 +203,11 @@ export default function Dashboard() {
 
   return (
     <div>
+      {dataError && (
+        <div role="status" className="mb-5 rounded-xl border px-4 py-3 text-sm" style={{ color: 'var(--warning)', borderColor: 'rgba(251,191,36,.3)', background: 'rgba(251,191,36,.06)' }}>
+          {dataError}
+        </div>
+      )}
       {/* Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
         <div>
@@ -380,7 +391,7 @@ export default function Dashboard() {
               {upcomingEvents.map((ev, i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                   <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${ev.type === 'deadline' ? 'bg-red-400' : ev.type === 'claim' ? 'bg-emerald-400' : 'bg-[#3b5bff]'
+                    <div className={`w-2 h-2 rounded-full ${ev.type === 'deadline' ? 'bg-red-400' : ev.type === 'claim' ? 'bg-emerald-400' : 'bg-[#f0a020]'
                       }`} />
                     <div>
                       <p className="text-sm text-white font-medium">{ev.name}</p>
@@ -391,7 +402,7 @@ export default function Dashboard() {
                       ? 'bg-red-500/15 text-red-400 border border-red-500/25'
                       : ev.days <= 7
                         ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                        : 'bg-[rgba(59,91,255,0.10)] text-[#7a9aff] border border-[rgba(59,91,255,0.25)]'
+                        : 'bg-[rgba(240, 160, 32,0.10)] text-[#f5c15e] border border-[rgba(240, 160, 32,0.25)]'
                     }`}>
                     <Clock className="w-3 h-3 inline mr-1" />
                     {ev.days}d

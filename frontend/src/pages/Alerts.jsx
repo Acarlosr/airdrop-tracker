@@ -34,7 +34,7 @@ export default function Alerts() {
       setAlerts(res.data?.data ?? [])
     } catch {
       setError('Não foi possível carregar os alertas.')
-      setAlerts(getMockAlerts())
+      setAlerts([])
     } finally {
       setLoading(false)
     }

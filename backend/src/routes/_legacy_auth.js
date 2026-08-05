@@ -34,7 +34,7 @@ export default async function authRoutes(fastify) {
     });
   });
 
-  // POST /auth/google - envia credential (id_token do Google), verifica e inicia fluxo OTP
+  // POST /auth/google - o ID token verificado pelo Google já é o segundo fator de confiança.
   fastify.post('/google', async (request, reply) => {
     const { credential } = request.body || {};
     if (!credential) {
@@ -44,22 +44,25 @@ export default async function authRoutes(fastify) {
     if (!user) {
       return reply.status(401).send({ error: 'Invalid Google token' });
     }
-    const identifier = user.email || user.sub;
-    await setPendingUser(identifier, {
-      sub: user.sub,
-      email: user.email,
-      name: user.name,
-      picture: user.picture,
-    });
-    const otpCode = await generateAndStoreOTP(identifier);
+
+    const allowedEmails = String(process.env.ALLOWED_EMAILS || '')
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    if (allowedEmails.length > 0 && !allowedEmails.includes(String(user.email).toLowerCase())) {
+      return reply.status(403).send({ error: 'Este e-mail não está autorizado a acessar o painel.' });
+    }
+
+    const token = createSessionToken(user);
     return reply.send({
       success: true,
-      requireOtp: true,
-      identifier,
-      email: user.email,
-      name: user.name,
-      picture: user.picture,
-      ...(otpCode && { otpCode }),
+      token,
+      user: {
+        sub: user.sub,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+      },
     });
   });
 

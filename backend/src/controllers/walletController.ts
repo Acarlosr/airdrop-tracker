@@ -1,5 +1,10 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { getWalletsByUserId, createWallet } from '../services/supabaseService.js';
+import {
+  getWalletsByUserId,
+  createWallet,
+  getUserPlan,
+  PLAN_LIMITS,
+} from '../services/supabaseService.js';
 
 interface CreateBody {
   address: string;
@@ -30,6 +35,20 @@ export async function create(request: FastifyRequest<{ Body: CreateBody }>, repl
   if (!body?.address?.trim()) {
     return reply.status(400).send({ error: 'address is required' });
   }
+
+  // Limite por plano (base de monetização): free = 3 carteiras.
+  const [plan, existing] = await Promise.all([
+    getUserPlan(userId),
+    getWalletsByUserId(userId),
+  ]);
+  const limit = PLAN_LIMITS[plan].maxWallets;
+  if (existing.length >= limit) {
+    return reply.status(403).send({
+      error: `Plano ${plan} permite até ${limit} carteiras. Faça upgrade para adicionar mais.`,
+      code: 'PLAN_LIMIT',
+    });
+  }
+
   const wallet = await createWallet(userId, {
     address: body.address.trim(),
     label: body.label ?? null,

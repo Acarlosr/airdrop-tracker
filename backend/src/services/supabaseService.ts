@@ -9,8 +9,23 @@ export interface UserRow {
   email: string;
   name: string | null;
   picture: string | null;
+  plan?: 'free' | 'pro';
   created_at: string;
   updated_at: string;
+}
+
+/** Limites por plano. Ajustar aqui quando os planos evoluírem. */
+export const PLAN_LIMITS = {
+  free: { maxWallets: 3 },
+  pro: { maxWallets: Infinity },
+} as const;
+
+/**
+ * Retorna o plano do usuário ('free' se a coluna ainda não existir).
+ */
+export async function getUserPlan(userId: string): Promise<'free' | 'pro'> {
+  const { data } = await db().from('users').select('plan').eq('id', userId).single();
+  return data?.plan === 'pro' ? 'pro' : 'free';
 }
 
 export interface AirdropRow {
@@ -24,6 +39,8 @@ export interface AirdropRow {
   potential: string | null;
   start_date: string | null;
   end_date: string | null;
+  links: Record<string, unknown> | null;
+  criteria: Record<string, unknown> | null;
   created_at: string;
   updated_at?: string;
 }
@@ -107,6 +124,20 @@ export async function getAirdropsByUserId(userId: string): Promise<AirdropRow[]>
 }
 
 /**
+ * Busca um airdrop do usuário por ID.
+ */
+export async function getAirdropById(id: string, userId: string): Promise<AirdropRow | null> {
+  const { data, error } = await db()
+    .from('airdrops')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single();
+  if (error || !data) return null;
+  return data as AirdropRow;
+}
+
+/**
  * Cria airdrop.
  */
 export async function createAirdrop(userId: string, body: {
@@ -118,6 +149,8 @@ export async function createAirdrop(userId: string, body: {
   potential?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  links?: Record<string, unknown> | null;
+  criteria?: Record<string, unknown> | null;
 }): Promise<AirdropRow> {
   const row = {
     id: crypto.randomUUID(),
@@ -130,6 +163,8 @@ export async function createAirdrop(userId: string, body: {
     potential: body.potential ?? null,
     start_date: body.start_date ?? null,
     end_date: body.end_date ?? null,
+    links: body.links ?? {},
+    criteria: body.criteria ?? {},
     created_at: new Date().toISOString(),
   };
   const { data, error } = await db().from('airdrops').insert(row).select().single();

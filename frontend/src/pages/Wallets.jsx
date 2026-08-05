@@ -22,7 +22,7 @@ export default function Wallets() {
       setWallets(res.data?.data ?? [])
     } catch {
       setError('Não foi possível carregar as carteiras.')
-      setWallets(getMockWallets())
+      setWallets([])
     } finally {
       setLoading(false)
     }

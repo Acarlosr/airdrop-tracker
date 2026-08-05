@@ -29,6 +29,12 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
+    const requestUrl = String(error.config?.url || '')
+    if (error.response?.status === 401 && !requestUrl.startsWith('/auth/')) {
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem('airdrop_user')
+      window.dispatchEvent(new Event('claimos:unauthorized'))
+    }
     if (error.response) {
       console.error('API Error:', error.response.data)
     } else if (error.request) {
@@ -71,6 +77,34 @@ const api = {
 
   // Eligibility
   checkEligibility: (wallet, airdropId) => instance.post('/eligibility/check', { wallet, airdrop: airdropId }),
+
+  // Interactions (log de farming / transações que fiz)
+  createInteraction: (data) => instance.post('/interactions', data),
+  getInteractions: (airdropId) => instance.get(`/interactions/airdrop/${airdropId}`),
+  getStreak: (airdropId) => instance.get(`/interactions/airdrop/${airdropId}/streak`),
+  getTodayPanel: () => instance.get('/interactions/today'),
+
+  // Prints/screenshots por airdrop
+  getAirdropImages: (airdropId) => instance.get(`/airdrops/${airdropId}/images`),
+  uploadAirdropImage: (airdropId, file, caption) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    if (caption) fd.append('caption', caption)
+    return instance.post(`/airdrops/${airdropId}/images`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  deleteAirdropImage: (airdropId, imageId) => instance.delete(`/airdrops/${airdropId}/images/${imageId}`),
+
+  // Resumo diário (robô Telegram)
+  previewBrief: () => instance.get('/brief/preview'),
+  sendBrief: () => instance.post('/brief/send'),
+
+  // Configurações do usuário (robô Telegram + chave OpenRouter, por usuário)
+  getUserSettings: () => instance.get('/settings'),
+  saveUserSettings: (data) => instance.put('/settings', data),
+  testTelegramSettings: () => instance.post('/settings/test-telegram'),
+  getFreeOpenRouterModels: () => instance.get('/settings/free-models'),
 
   // Analytics / Dashboard
   getDashboardStats: () => instance.get('/analytics/dashboard'),

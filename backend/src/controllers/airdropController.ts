@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import {
   getAirdropsByUserId,
+  getAirdropById,
   createAirdrop,
   updateAirdrop,
   deleteAirdrop,
@@ -16,9 +17,30 @@ interface CreateBody {
   potential?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  links?: Record<string, unknown> | null;
+  criteria?: Record<string, unknown> | null;
 }
 
 interface Params { id?: string }
+
+/**
+ * Mantém apenas entradas cujo valor é uma URL http(s) válida.
+ * Evita persistir javascript:, data: ou lixo vindo do cliente.
+ */
+function sanitizeLinks(links: Record<string, unknown> | null | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!links || typeof links !== 'object') return out;
+  for (const [key, value] of Object.entries(links)) {
+    if (typeof value !== 'string') continue;
+    try {
+      const url = new URL(value);
+      if (url.protocol === 'http:' || url.protocol === 'https:') out[key] = url.toString();
+    } catch {
+      // valor não é URL — descarta em silêncio
+    }
+  }
+  return out;
+}
 
 function getUserId(request: FastifyRequest, reply: FastifyReply): string | null {
   const user = request.user;
@@ -34,6 +56,19 @@ export async function list(request: FastifyRequest, reply: FastifyReply) {
   if (userId === null) return;
   const list = await getAirdropsByUserId(userId);
   return reply.send({ airdrops: list });
+}
+
+export async function getOne(
+  request: FastifyRequest<{ Params: Params }>,
+  reply: FastifyReply,
+) {
+  const userId = getUserId(request, reply);
+  if (userId === null) return;
+  const id = request.params.id;
+  if (!id) return reply.status(400).send({ error: 'id is required' });
+  const airdrop = await getAirdropById(id, userId);
+  if (!airdrop) return reply.status(404).send({ error: 'Airdrop not found' });
+  return reply.send({ data: airdrop });
 }
 
 export async function create(request: FastifyRequest<{ Body: CreateBody }>, reply: FastifyReply) {
@@ -52,6 +87,8 @@ export async function create(request: FastifyRequest<{ Body: CreateBody }>, repl
     potential: body.potential ?? null,
     start_date: body.start_date ?? null,
     end_date: body.end_date ?? null,
+    links: sanitizeLinks(body.links),
+    criteria: body.criteria ?? {},
   });
   return reply.status(201).send(airdrop);
 }
@@ -72,6 +109,8 @@ export async function update(request: FastifyRequest<{ Params: Params; Body: Par
   if (body.potential !== undefined) allowed.potential = body.potential;
   if (body.start_date !== undefined) allowed.start_date = body.start_date;
   if (body.end_date !== undefined) allowed.end_date = body.end_date;
+  if (body.links !== undefined) allowed.links = sanitizeLinks(body.links);
+  if (body.criteria !== undefined) allowed.criteria = body.criteria ?? {};
 
   const airdrop = await updateAirdrop(id, userId, allowed);
   if (!airdrop) return reply.status(404).send({ error: 'Airdrop not found' });

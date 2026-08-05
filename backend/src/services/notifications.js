@@ -16,9 +16,11 @@ const PRIORITY_EMOJI = {
 };
 
 // ── Telegram ──────────────────────────────────────────────────────
-async function sendTelegram(title, message, priority = 'normal') {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
+// `override` permite enviar com credenciais de um usuário específico
+// (robô por usuário) em vez das globais do .env.
+async function sendTelegram(title, message, priority = 'normal', override = null) {
+    const token = override?.token || process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = override?.chatId || process.env.TELEGRAM_CHAT_ID;
     if (!token || !chatId) return false;
 
     const emoji = PRIORITY_EMOJI[priority] || 'ℹ️';

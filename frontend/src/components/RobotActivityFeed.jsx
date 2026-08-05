@@ -3,7 +3,7 @@
 const PRIORITY_STYLES = {
     critical: { bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.20)', dot: '#f87171' },
     high: { bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.20)', dot: '#fbbf24' },
-    medium: { bg: 'rgba(59,91,255,0.08)', border: 'rgba(59,91,255,0.20)', dot: '#7a9aff' },
+    medium: { bg: 'rgba(240, 160, 32,0.08)', border: 'rgba(240, 160, 32,0.20)', dot: '#f5c15e' },
     low: { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.06)', dot: 'rgba(255,255,255,0.30)' },
 }
 
@@ -64,7 +64,7 @@ export function RobotActivityFeed({ insights = [], reminders = [] }) {
                                 </div>
                                 {item.airdrop && (
                                     <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full"
-                                        style={{ background: 'rgba(59,91,255,0.12)', color: '#7a9aff', border: '1px solid rgba(59,91,255,0.20)' }}>
+                                        style={{ background: 'rgba(240, 160, 32,0.12)', color: '#f5c15e', border: '1px solid rgba(240, 160, 32,0.20)' }}>
                                         {item.airdrop}
                                     </span>
                                 )}
