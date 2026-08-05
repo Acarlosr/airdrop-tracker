@@ -15,22 +15,33 @@ import {
   MessageCircle,
   BookOpen,
   CalendarCheck,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { env } from '../lib/env.js'
 import Login from '../pages/Login'
 import { ClaimOSLogo } from './ClaimOSLogo'
 
+const THEME_KEY = 'claimos-theme'
+
 export default function Layout({ children }) {
   const location = useLocation()
   const { user, logout, isAuthenticated } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
   const [showRefs, setShowRefs] = useState(false)
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'dark'
+    return localStorage.getItem(THEME_KEY) || 'dark'
+  })
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    document.documentElement.setAttribute('data-theme', 'dark')
-  }, [])
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem(THEME_KEY, theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
   const navigation = [
     { name: 'Painel', path: '/', icon: Home },
@@ -238,6 +249,15 @@ export default function Layout({ children }) {
           </div>
           {/* Login / conta — à direita */}
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-8 h-8 rounded-full flex items-center justify-center border transition-colors"
+              style={{ borderColor: 'var(--border)', background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
+              title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           {isAuthenticated && user ? (
             <div className="flex items-center gap-3 px-3 py-1.5 rounded-full border"
               style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}>
