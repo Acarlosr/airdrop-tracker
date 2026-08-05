@@ -2,6 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { Twitter, MessageCircle, Search, RefreshCw, Zap } from 'lucide-react';
 import api from '../services/api';
 
+// A API pode devolver campos inesperados como objeto em vez de string
+// (ex.: corpo de erro {code, message}) — nunca renderizar objeto direto no JSX.
+function toDisplayText(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return value.message || value.error || '';
+  return String(value);
+}
+
 export function SocialFeed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,6 +26,8 @@ export function SocialFeed() {
       const data = response.data?.data || response.data?.posts || [];
       setPosts(data.map((post) => ({
         ...post,
+        author: toDisplayText(post.author),
+        content: toDisplayText(post.content),
         source: post.source || post.platform,
         timestamp: new Date(post.timestamp || post.posted_at || post.created_at),
         url: post.url || post.source_url || null,

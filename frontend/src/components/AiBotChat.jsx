@@ -2,6 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Loader, MessageCircle } from 'lucide-react';
 import api from '../services/api';
 
+// A API pode, em falha, devolver o corpo do erro como objeto ({code, message})
+// em vez de string. Nunca renderizar um objeto direto no JSX — sempre texto.
+function toDisplayText(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return value.message || value.error || JSON.stringify(value);
+  return String(value);
+}
+
 export function AiBotChat({ wallet, collapsed = false }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -19,13 +28,13 @@ export function AiBotChat({ wallet, collapsed = false }) {
             if (response.data.history[i]?.role === 'user') {
               formattedMessages.push({
                 role: 'user',
-                content: response.data.history[i].content
+                content: toDisplayText(response.data.history[i].content)
               });
             }
             if (response.data.history[i + 1]?.role === 'assistant') {
               formattedMessages.push({
                 role: 'assistant',
-                content: response.data.history[i + 1].content
+                content: toDisplayText(response.data.history[i + 1].content)
               });
             }
           }
@@ -59,13 +68,13 @@ export function AiBotChat({ wallet, collapsed = false }) {
         // Adicionar resposta do bot
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: response.data.response,
+          content: toDisplayText(response.data.response),
           actions: response.data.actions
         }]);
       } else {
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: '❌ Erro: ' + (response.data.error || 'Algo deu errado')
+          content: '❌ Erro: ' + toDisplayText(response.data.error || 'Algo deu errado')
         }]);
       }
     } catch (error) {
